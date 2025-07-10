@@ -1,6 +1,7 @@
 ## FEATURE: Restaurant Reservation API Endpoints
 
 * Implementation of the core REST API endpoints for managing restaurant reservations.
+* Install required libraries
 * Endpoints include: availability checking, reservation creation, table listing, and configuration retrieval.
 * All endpoints are scoped under `/restaurants/:restId/`.
 * Requests are authenticated via API key.

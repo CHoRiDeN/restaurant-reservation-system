@@ -1,0 +1,78 @@
+// Database types (generated from schema)
+export interface Restaurant {
+  id: number;
+  name: string;
+  api_key: string;
+  reservation_duration: number; // minutes
+  buffer_time: number; // minutes
+}
+
+export interface Zone {
+  id: number;
+  name: string;
+  restaurant_id: number;
+}
+
+export interface Table {
+  id: number;
+  capacity: number;
+  zone_id?: number;
+  restaurant_id: number;
+}
+
+export interface Schedule {
+  id: number;
+  day_of_week: number; // 0-6 (0=Sunday, 6=Saturday)
+  opening_time: string; // HH:MM format
+  closing_time: string; // HH:MM format
+  restaurant_id: number;
+}
+
+export interface Reservation {
+  id: number;
+  date: string; // ISO timestamp
+  guests: number;
+  table_id: number;
+  restaurant_id: number;
+  confirmed: boolean;
+}
+
+export interface ScheduleException {
+  id: number;
+  date: string; // YYYY-MM-DD format
+  opening_time?: string; // HH:MM format
+  closing_time?: string; // HH:MM format
+  restaurant_id: number;
+  description?: string;
+}
+
+// API Response types
+export interface AvailabilityResponse {
+  success: true;
+  data: {
+    date: string;
+    guests: number;
+    availableSlots: string[];
+    tablesAvailable: number;
+    restaurant: {
+      id: number;
+      name: string;
+      reservationDuration: number;
+      bufferTime: number;
+    };
+  };
+}
+
+export interface ReservationResponse {
+  success: true;
+  data: {
+    reservation: Reservation;
+    table: Table;
+  };
+}
+
+export interface ErrorResponse {
+  error: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
