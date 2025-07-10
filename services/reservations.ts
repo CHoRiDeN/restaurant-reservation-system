@@ -1,53 +1,70 @@
 import { RestaurantRepository } from '../repositories/database'
 import { checkAvailability, getAvailableTablesForSlot } from './availability'
-import { Reservation, Table } from '../lib/supabase/types'
+import { Reservation, Table, Client } from '../lib/supabase/types'
 
 export async function createReservation(
   restaurantId: number,
-  date: string,
-  guests: number
-): Promise<{ reservation: Reservation, table: Table } | null> {
+  startTime: string,
+  guests: number,
+  clientId: number
+): Promise<{ reservation: Reservation, table: Table, client?: Client } | null> {
   const db = new RestaurantRepository()
 
   try {
-    // STEP 1: Validate availability first
-    const dateOnly = date.split('T')[0] // Extract date part
-    const timeOnly = date.split('T')[1]?.split(':').slice(0, 2).join(':') || '12:00' // Extract time part
-    
-    const availability = await checkAvailability(restaurantId, dateOnly, timeOnly, guests)
-    if (availability.availableSlots.length === 0) {
-      throw new Error('No availability for requested time')
+    // STEP 1: Basic validation (detailed availability check will be done in createReservationWithLock)
+    const validation = await validateReservationRequest(restaurantId, startTime, guests)
+    if (!validation.valid) {
+      throw new Error(validation.errors.join(', '))
     }
 
-    // STEP 2: Get available tables for the specific time slot
-    const availableTables = await getAvailableTablesForSlot(restaurantId, dateOnly, timeOnly, guests)
-    if (availableTables.length === 0) {
-      throw new Error('No suitable table available')
+    // STEP 2: Validate client exists (now required)
+    const { data: clientData, error: clientError } = await db.getClient(clientId)
+    if (clientError || !clientData) {
+      throw new Error('Client not found')
     }
+    const client = clientData
 
-    // STEP 3: Find optimal table (smallest capacity that fits)
-    const suitableTable = availableTables
-      .filter(table => table.capacity >= guests)
-      .sort((a, b) => a.capacity - b.capacity)[0]
+    const { data: restaurant } = await db.getRestaurant(restaurantId)
+    const reservationDuration = restaurant?.reservation_duration
+    const requestStart = new Date(startTime)
+    const requestEnd =  new Date(requestStart.getTime() + reservationDuration * 60000)
+    console.log('end_time', requestEnd)
 
-    if (!suitableTable) {
-      throw new Error('No suitable table available')
+    // STEP 3: Create reservation with automatic table assignment and enhanced conflict prevention
+    try {
+      const result = await db.createReservationWithLock({
+        start_time: startTime,
+        end_time: requestEnd.toISOString(),
+        guests,
+        restaurant_id: restaurantId,
+        client_id: clientId,
+        confirmed: true
+        // Note: No table_id specified - let the system choose the best available table
+      })
+
+      return { 
+        reservation: result.reservation, 
+        table: result.table,
+        client: result.client || client
+      }
+    } catch (error: any) {
+      // Handle specific business logic errors
+      if (error.message.includes('No available tables')) {
+        return null // No availability
+      }
+      if (error.message.includes('no longer available')) {
+        throw new Error('Table already reserved for this time slot')
+      }
+      
+      // Handle constraint violations gracefully
+      if (error.code === '23505') { // Unique constraint violation
+        throw new Error('Table already reserved for this time slot')
+      }
+      if (error.code === '23503') { // Foreign key constraint violation
+        throw new Error('Invalid client reference')
+      }
+      throw new Error(`Failed to create reservation: ${error.message || 'Unknown error'}`)
     }
-
-    // STEP 4: Create reservation
-    const { data: reservation, error } = await db.createReservation({
-      date: new Date(date).toISOString(),
-      guests,
-      table_id: suitableTable.id,
-      restaurant_id: restaurantId,
-      confirmed: true
-    })
-
-    if (error || !reservation) {
-      throw new Error(`Failed to create reservation: ${error?.message || 'Unknown error'}`)
-    }
-
-    return { reservation, table: suitableTable }
   } catch (error) {
     console.error('Reservation creation error:', error)
     throw error
@@ -56,7 +73,7 @@ export async function createReservation(
 
 export async function validateReservationRequest(
   restaurantId: number,
-  date: string,
+  startTime: string,
   guests: number
 ): Promise<{ valid: boolean, errors: string[] }> {
   const errors: string[] = []
@@ -69,18 +86,22 @@ export async function validateReservationRequest(
     errors.push('Guest count cannot exceed 20')
   }
 
-  // Validate date format and future date
+  // Validate time format and future time
   try {
-    const reservationDate = new Date(date)
+    
+    const reservationStart = new Date(startTime)
     const now = new Date()
     
-    if (isNaN(reservationDate.getTime())) {
-      errors.push('Invalid date format')
-    } else if (reservationDate < now) {
-      errors.push('Reservation date must be in the future')
+    if (isNaN(reservationStart.getTime())) {
+      errors.push('Invalid start time format')
+    } else if (reservationStart < now) {
+      errors.push('Reservation start time must be in the future')
     }
+
+    
+   
   } catch (error) {
-    errors.push('Invalid date format')
+    errors.push('Invalid time format')
   }
 
   // Validate restaurant exists
@@ -96,10 +117,45 @@ export async function validateReservationRequest(
   }
 }
 
+export async function createReservationWithClientData(
+  restaurantId: number,
+  startTime: string,
+  guests: number,
+  clientData: {
+    name: string
+    email: string
+    phone?: string
+  }
+): Promise<{ reservation: Reservation, table: Table, client?: Client } | null> {
+  const db = new RestaurantRepository()
+
+  try {
+    // Try to find existing client by email first
+    const { data: existingClient } = await db.getClientByEmail(clientData.email)
+    
+    let clientId: number
+    if (existingClient) {
+      clientId = existingClient.id
+    } else {
+      // Create new client
+      const { data: newClient, error: clientError } = await db.createClient(clientData)
+      if (clientError || !newClient) {
+        throw new Error(`Failed to create client: ${clientError?.message || 'Unknown error'}`)
+      }
+      clientId = newClient.id
+    }
+
+    return await createReservation(restaurantId, startTime, guests, clientId)
+  } catch (error) {
+    console.error('Reservation with client data creation error:', error)
+    throw error
+  }
+}
+
 export async function getReservationsForRestaurant(
   restaurantId: number,
   filters?: {
-    date?: string
+    startDate?: string
     tableId?: number
   }
 ) {

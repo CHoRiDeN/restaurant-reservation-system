@@ -42,14 +42,15 @@ export async function GET(
       return BadRequestResponse('guests must be between 1 and 20')
     }
     
-    // PATTERN: Business logic
+    // PATTERN: Business logic - enhanced availability with table counts
     const availability = await checkAvailability(restaurant.id, date, time, guests)
     
     return createSuccessResponse({
       date,
       guests,
       availableSlots: availability.availableSlots,
-      tablesAvailable: availability.tables.length,
+      tablesAvailable: availability.tablesAvailable,
+      totalTables: availability.totalTables,
       restaurant: {
         id: restaurant.id,
         name: restaurant.name,

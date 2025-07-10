@@ -1,33 +1,16 @@
-## FEATURE: Restaurant Reservation API Endpoints
+## FEATURE: Add next functionalities
 
-* Implementation of the core REST API endpoints for managing restaurant reservations.
-* Install required libraries
-* Endpoints include: availability checking, reservation creation, table listing, and configuration retrieval.
-* All endpoints are scoped under `/restaurants/:restId/`.
-* Requests are authenticated via API key.
-
-## ENDPOINTS INCLUDED:
-
-* `GET /restaurants/:restId/availability`
-* `POST /restaurants/:restId/reservations`
-* `GET /restaurants/:restId/available-tables`
-* `GET /restaurants/:restId/config`
+* It must not be possible to book the same table at the same time. When creating a new reservation we must see which are the remaining tables and assign one. IF there are not available tables the reservastion cannot be made. Now I've created 3 reservations and i've been assigned the same table. ENSURE THIS IS NOT POSSIBLE. 
+* now when doing a reservation must provide client data. (name, email, phone) so new user is created in db (if doesnt exists) and linked to reservation. if the user exsits is just linked
 
 
 
-## DOCUMENTATION:
+## NOTES
+* We updated reservations columns to reflect reservation from and to datetime:
+alter table reservations
+drop date,
+add column start_time timestamp not null,
+add column end_time timestamp not null;
 
-Refer to the full README.md system specification for:
-
-* Database schema is in migrations.sql
-* Business rules and constraints
-* Expected logic for reservation assignment and availability validation
-
-## OTHER CONSIDERATIONS:
-
-* All environment variables should be configured via `.env`.
-* A `.env.example` file is provided with the expected variables:
-NEXT_PUBLIC_SUPABASE_URL=https://eutadnfltlpcdwkwpiza.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1dGFkbmZsdGxwY2R3a3dwaXphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3Mjg4MTcsImV4cCI6MjA2NzMwNDgxN30.jpfs3AMASEkzG3Vkl6_gVE6rJ_4rKqROpnTWOYU16ec
-
-
+* You can test with restaurant 1 with api key a6ba04e7-9d19-45f2-a004-43a4b9784828
+* restaurant 1 has 4 tables: 2 with capacity 4, 1 with capacity 6 and 1 with caapcity 8

@@ -6,14 +6,14 @@ export async function checkAvailability(
   date: string,
   time: string,
   guests: number
-): Promise<{ availableSlots: string[], tables: Table[] }> {
+): Promise<{ availableSlots: string[], tables: Table[], tablesAvailable: number, totalTables: number }> {
   const db = new RestaurantRepository()
 
   try {
     // STEP 1: Get restaurant configuration
     const { data: restaurant, error: restaurantError } = await db.getRestaurant(restaurantId)
     if (restaurantError || !restaurant) {
-      return { availableSlots: [], tables: [] }
+      return { availableSlots: [], tables: [], tablesAvailable: 0, totalTables: 0 }
     }
 
     // STEP 2: Get day of week (0=Sunday, 6=Saturday)
@@ -23,7 +23,7 @@ export async function checkAvailability(
     // STEP 3: Get schedule for the day
     const { data: schedule, error: scheduleError } = await db.getSchedule(restaurantId, dayOfWeek)
     if (scheduleError || !schedule) {
-      return { availableSlots: [], tables: [] }
+      return { availableSlots: [], tables: [], tablesAvailable: 0, totalTables: 0 }
     }
 
     // STEP 4: Check for schedule exceptions
@@ -34,7 +34,7 @@ export async function checkAvailability(
     const closingTime = exception?.closing_time || schedule.closing_time
 
     if (!openingTime || !closingTime) {
-      return { availableSlots: [], tables: [] }
+      return { availableSlots: [], tables: [], tablesAvailable: 0, totalTables: 0 }
     }
 
     // STEP 5: Generate time slots
@@ -43,23 +43,28 @@ export async function checkAvailability(
     // STEP 6: Get suitable tables
     const { data: tables, error: tablesError } = await db.getTables(restaurantId, guests)
     if (tablesError || !tables || tables.length === 0) {
-      return { availableSlots: [], tables: [] }
+      return { availableSlots: [], tables: [], tablesAvailable: 0, totalTables: 0 }
     }
 
-    // STEP 7: Filter available slots
+    // STEP 7: Get total table count for the guest capacity
+    const totalTables = await db.getTotalTableCount(restaurantId, guests)
+
+    // STEP 8: Filter available slots and calculate table counts
     const availableSlots: string[] = []
+    const tableCountsPerSlot: number[] = []
 
     for (const slot of slots) {
       const slotDateTime = new Date(`${date}T${slot}:00Z`)
       const slotEnd = new Date(slotDateTime.getTime() + restaurant.reservation_duration * 60000)
+      const bufferStart = new Date(slotDateTime.getTime() - restaurant.buffer_time * 60000)
       const bufferEnd = new Date(slotEnd.getTime() + restaurant.buffer_time * 60000)
 
-      // Check if any table is available for this slot
-      const hasAvailableTable = await Promise.all(
+      // Check availability for each table using the enhanced conflict detection
+      const tableAvailability = await Promise.all(
         tables.map(async (table) => {
           const { data: conflictingReservations } = await db.getConflictingReservations(
             table.id,
-            new Date(slotDateTime.getTime() - restaurant.buffer_time * 60000).toISOString(),
+            bufferStart.toISOString(),
             bufferEnd.toISOString()
           )
 
@@ -67,15 +72,26 @@ export async function checkAvailability(
         })
       )
 
-      if (hasAvailableTable.some(Boolean)) {
+      const availableTablesCount = tableAvailability.filter(Boolean).length
+
+      if (availableTablesCount > 0) {
         availableSlots.push(slot)
+        tableCountsPerSlot.push(availableTablesCount)
       }
     }
 
-    return { availableSlots, tables }
+    // STEP 9: Calculate overall table availability
+    const maxTablesAvailable = tableCountsPerSlot.length > 0 ? Math.max(...tableCountsPerSlot) : 0
+
+    return { 
+      availableSlots, 
+      tables, 
+      tablesAvailable: maxTablesAvailable,
+      totalTables 
+    }
   } catch (error) {
     console.error('Availability check error:', error)
-    return { availableSlots: [], tables: [] }
+    return { availableSlots: [], tables: [], tablesAvailable: 0, totalTables: 0 }
   }
 }
 
@@ -127,9 +143,11 @@ export async function getAvailableTablesForSlot(
     const availableTables: Table[] = []
 
     for (const table of tables) {
+      const bufferStart = new Date(slotDateTime.getTime() - restaurant.buffer_time * 60000)
+      
       const { data: conflictingReservations } = await db.getConflictingReservations(
         table.id,
-        new Date(slotDateTime.getTime() - restaurant.buffer_time * 60000).toISOString(),
+        bufferStart.toISOString(),
         bufferEnd.toISOString()
       )
 
@@ -142,5 +160,47 @@ export async function getAvailableTablesForSlot(
   } catch (error) {
     console.error('Error getting available tables for slot:', error)
     return []
+  }
+}
+
+// Enhanced availability check for a specific time slot with table counts
+export async function getAvailabilityForSlot(
+  restaurantId: number,
+  date: string,
+  time: string,
+  guests: number
+): Promise<{ available: boolean, tablesAvailable: number, totalTables: number }> {
+  const db = new RestaurantRepository()
+
+  try {
+    // Get total table count
+    const totalTables = await db.getTotalTableCount(restaurantId, guests)
+    
+    // Get available table count for this specific slot
+    const slotDateTime = new Date(`${date}T${time}:00Z`)
+    const restaurant = await db.getRestaurant(restaurantId)
+    if (!restaurant.data) {
+      throw new Error('Restaurant not found')
+    }
+    const slotEnd = new Date(slotDateTime.getTime() + restaurant.data.reservation_duration * 60000)
+    const tablesAvailable = await db.getAvailableTableCount(
+      restaurantId,
+      slotDateTime.toISOString(),
+      slotEnd.toISOString(),
+      guests
+    )
+
+    return {
+      available: tablesAvailable > 0,
+      tablesAvailable,
+      totalTables
+    }
+  } catch (error) {
+    console.error('Error checking slot availability:', error)
+    return {
+      available: false,
+      tablesAvailable: 0,
+      totalTables: 0
+    }
   }
 }

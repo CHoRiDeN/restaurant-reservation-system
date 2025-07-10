@@ -28,12 +28,23 @@ export interface Schedule {
   restaurant_id: number;
 }
 
+export interface Client {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Reservation {
   id: number;
-  date: string; // ISO timestamp
+  start_time: string; // ISO timestamp
+  end_time: string; // ISO timestamp
   guests: number;
   table_id: number;
   restaurant_id: number;
+  client_id: number; // Now required for all new reservations
   confirmed: boolean;
 }
 
@@ -54,6 +65,7 @@ export interface AvailabilityResponse {
     guests: number;
     availableSlots: string[];
     tablesAvailable: number;
+    totalTables: number;
     restaurant: {
       id: number;
       name: string;
@@ -68,6 +80,22 @@ export interface ReservationResponse {
   data: {
     reservation: Reservation;
     table: Table;
+    client?: Client;
+  };
+}
+
+export interface ClientResponse {
+  success: true;
+  data: {
+    client: Client;
+  };
+}
+
+export interface ClientListResponse {
+  success: true;
+  data: {
+    clients: Client[];
+    total: number;
   };
 }
 
