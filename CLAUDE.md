@@ -1,39 +1,114 @@
-### 🔄 Project Awareness & Context
-- **Always read `PLANNING.md`** at the start of a new conversation to understand the project's architecture, goals, style, and constraints.
-- **Check `TASK.md`** before starting a new task. If the task isn’t listed, add it with a brief description and today's date.
-- **Use consistent naming conventions, file structure, and architecture patterns** as described in `PLANNING.md`.
-- **Use venv_linux** (the virtual environment) whenever executing Python commands, including for unit tests.
+# CLAUDE.md
 
-### 🧱 Code Structure & Modularity
-- **Never create a file longer than 500 lines of code.** If a file approaches this limit, refactor by splitting it into modules or helper files.
-- **Organize code into clearly separated modules**, grouped by feature or responsibility.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-- **Use clear, consistent imports** (prefer relative imports within packages).
-- **Use clear, consistent imports** (prefer relative imports within packages).
-- **Use python_dotenv and load_env()** for environment variables.
+## Project Definition
 
-### 🧪 Testing & Reliability
-- **Always create Pytest unit tests for new features** (functions, classes, routes, etc).
-- **After updating any logic**, check whether existing unit tests need to be updated. If so, do it.
-- **Tests should live in a `/tests` folder** mirroring the main app structure.
-  - Include at least:
-    - 1 test for expected use
-    - 1 edge case
-    - 1 failure case
+This project is a restaurant reservation management system designed exclusively for virtual assistants like Nora via an API. The system manages multi-tenant restaurant reservations, handling availability queries and automatic reservation creation with intelligent table assignment.
 
-### ✅ Task Completion
-- **Mark completed tasks in `TASK.md`** immediately after finishing them.
-- Add new sub-tasks or TODOs discovered during development to `TASK.md` under a “Discovered During Work” section.
+### Core Architecture
 
+- **Backend**: Next.js 15 API Routes + TypeScript
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: Clerk
+- **UI Components**: Radix UI Themes + Tailwind CSS
+- **Deployment**: Vercel (Next.js) + supabase database
 
+### Key Design Principles
 
-### 📚 Documentation & Explainability
-- **Update `README.md`** when new features are added, dependencies change, or setup steps are modified.
-- **Comment non-obvious code** and ensure everything is understandable to a mid-level developer.
-- When writing complex logic, **add an inline `# Reason:` comment** explaining the why, not just the what.
+- **API-first**: No user interfaces, purely API-driven
+- **Multi-tenant**: Each restaurant has its own configuration via API keys
+- **Auto-confirmation**: Reservations are automatically created when availability permits
+- **Smart table assignment**: System selects optimal tables based on capacity and availability
 
-### 🧠 AI Behavior Rules
-- **Never assume missing context. Ask questions if uncertain.**
-- **Never hallucinate libraries or functions** – only use known, verified Python packages.
-- **Always confirm file paths and module names** exist before referencing them in code or tests.
-- **Never delete or overwrite existing code** unless explicitly instructed to or if part of a task from `TASK.md`.
+## Common Development Commands
+
+```bash
+# Development
+npm run dev           # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+
+# Database operations (when Prisma is fully set up)
+npx prisma generate  # Generate Prisma client
+npx prisma migrate   # Run database migrations
+npx prisma studio    # Open Prisma Studio
+```
+
+## Code Organization
+
+### Directory Structure
+
+```
+app/                 # Next.js app directory (pages and API routes)
+  ├── (auth)/       # Authentication routes (Clerk)
+  ├── api/          # API routes (when implemented)
+  └── globals.css   # Global styles
+actions/            # Server actions (currently empty)
+services/           # Business logic layer (currently empty)
+repositories/       # Database connectors
+middleware.ts       # Clerk authentication middleware
+```
+
+### Database Schema
+
+The system uses the following main entities:
+
+- **restaurants**: Core tenant entity with API keys and settings
+- **zones**: Optional table groupings (terrace, dining room, etc.)
+- **tables**: Physical tables with capacity and zone assignment
+- **schedules**: Weekly operating hours per restaurant
+- **reservations**: Booking records with automatic table assignment
+- **schedule_exceptions**: Special hours/closures (holidays, etc.)
+
+### Business Logic Rules
+
+1. **Reservation Duration**: Configurable per restaurant (default: 60 minutes)
+2. **Buffer Time**: Minimum time between reservations (default: 15 minutes)
+3. **Table Assignment**: Automatic selection based on capacity ≥ guest count
+4. **No Overlaps**: Reservations cannot overlap including buffer time
+5. **Operating Hours**: Reservations only within defined schedules
+6. **Multi-tenancy**: All operations scoped by restaurant_id
+
+## Development Guidelines
+
+### Code Structure
+
+- **File size limit**: Maximum 500 lines per file
+- **Prefer server components**: Use Next.js server components when possible
+- **Folder organization**: Group by feature/responsibility
+- **Import style**: Use relative imports within packages, `@/*` for absolute paths
+
+### Authentication
+
+- Uses Clerk for authentication
+- Middleware protects all routes except `/sign-in` and `/sign-up`
+- Public routes are defined in `middleware.ts`
+
+### Current State
+
+The project is in early development with:
+- ✅ Next.js 15 setup with TypeScript
+- ✅ Clerk authentication configured
+- ✅ Radix UI + Tailwind CSS styling
+- ⚠️ Database layer not yet implemented (Prisma mentioned but no schema files present)
+- ⚠️ API routes not yet implemented
+- ⚠️ Services/repositories folders are empty
+
+### Important Notes
+
+- The database is specified as PostgreSQL but no Prisma schema is currently present
+- The project mentions using Supabase but package.json shows no Supabase dependencies
+- There's a typo in the directory name: "respositories" should be "repositories"
+- No test framework is currently configured despite testing guidelines in the original file
+
+### Next Steps for Implementation
+
+When implementing core features:
+1. Set up Prisma schema with the database entities
+2. Create API routes for reservation management
+3. Implement services layer for business logic
+4. Add repository layer for database operations
+5. Set up proper testing framework
+6. Configure database connection (PostgreSQL/Supabase)
