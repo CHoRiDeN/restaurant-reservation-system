@@ -1,5 +1,4 @@
 import { RestaurantRepository } from '../repositories/database'
-import { checkAvailability, getAvailableTablesForSlot } from './availability'
 import { Reservation, Table, Client } from '../lib/supabase/types'
 
 export async function createReservation(
@@ -17,7 +16,7 @@ export async function createReservation(
       throw new Error(validation.errors.join(', '))
     }
 
-    // STEP 2: Validate client exists (now required)
+    // STEP 2: Validate client exists 
     const { data: clientData, error: clientError } = await db.getClient(clientId)
     if (clientError || !clientData) {
       throw new Error('Client not found')
@@ -28,7 +27,6 @@ export async function createReservation(
     const reservationDuration = restaurant?.reservation_duration
     const requestStart = new Date(startTime)
     const requestEnd =  new Date(requestStart.getTime() + reservationDuration * 60000)
-    console.log('end_time', requestEnd)
 
     // STEP 3: Create reservation with automatic table assignment and enhanced conflict prevention
     try {

@@ -22,19 +22,18 @@ export async function GET(
     
     // PATTERN: Extract and validate query parameters
     const { searchParams } = new URL(request.url)
-    const date = searchParams.get('date')
-    const time = searchParams.get('time') || ''
+    const datetime = searchParams.get('datetime')
     const guests = parseInt(searchParams.get('guests') || '0')
     
     // VALIDATION: Check required parameters
-    if (!date || !guests) {
-      return BadRequestResponse('date and guests parameters are required')
+    if (!datetime || !guests) {
+      return BadRequestResponse('datetime and guests parameters are required')
     }
     
     // VALIDATION: Check date format
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/
-    if (!dateRegex.test(date)) {
-      return BadRequestResponse('date must be in YYYY-MM-DD format')
+    const datetimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/
+    if (!datetimeRegex.test(datetime)) {
+      return BadRequestResponse('datetime must be in YYYY-MM-DDTHH:MM:SSZ format')
     }
     
     // VALIDATION: Check guests
@@ -43,14 +42,12 @@ export async function GET(
     }
     
     // PATTERN: Business logic - enhanced availability with table counts
-    const availability = await checkAvailability(restaurant.id, date, time, guests)
+    const availability = await checkAvailability(restaurant.id, datetime, guests)
     
     return createSuccessResponse({
-      date,
+      datetime,
       guests,
-      availableSlots: availability.availableSlots,
-      tablesAvailable: availability.tablesAvailable,
-      totalTables: availability.totalTables,
+      availability: availability,
       restaurant: {
         id: restaurant.id,
         name: restaurant.name,

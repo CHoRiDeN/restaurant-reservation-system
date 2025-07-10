@@ -50,7 +50,15 @@ export class RestaurantRepository {
       .select('*')
       .eq('restaurant_id', restaurantId)
       .eq('day_of_week', dayOfWeek)
-      .single()
+  }
+
+  async getReservationsForDay(restaurantId: number, date: string, guests: number) {
+    const supabase = await this.getSupabase()
+    return await supabase
+      .from('reservations')
+      .select('*')
+      .eq('restaurant_id', restaurantId)
+      .eq('start_time', date)
   }
 
   async getScheduleException(restaurantId: number, date: string) {
@@ -354,7 +362,7 @@ export class RestaurantRepository {
   }
   
   // Find an available table for a reservation
-  private async findAvailableTable(
+  public async findAvailableTable(
     restaurantId: number,
     startTime: string,
     endTime: string,
@@ -367,7 +375,6 @@ export class RestaurantRepository {
     // Get suitable tables (ordered by capacity ascending to prefer smaller tables)
     const { data: tables } = await this.getTables(restaurantId, guests)
     if (!tables || tables.length === 0) return null
-    console.log(tables)
 
     // Calculate time windows with buffer
     const requestStart = new Date(startTime)
@@ -385,7 +392,6 @@ export class RestaurantRepository {
      
       
       if (!conflicts || conflicts.length === 0) {
-        console.log('table', table.id, 'has no conflicts')
         return table // Return first available table
       }
     }
