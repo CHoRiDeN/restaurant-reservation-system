@@ -9,7 +9,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import moment from "moment"
 import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { getReservationsForDay } from "@/actions/restaurantActions"
+import { getDaySchedules, getReservationsForDay } from "@/actions/restaurantActions"
 import { createClient } from '@supabase/supabase-js';
 import { getOpenAndCloseTimes, isInSchedule } from "@/services/schedulesService"
 
@@ -34,7 +34,7 @@ const generateTimeSlots = (daySchedules: Schedule[]) => {
 
     return timeSlots;
 }
-export default function CSRestaurantReservationsPage({ tables, restaurant, daySchedules }: { tables: Table[], restaurant: Restaurant, daySchedules: Schedule[] }) {
+export default function CSRestaurantReservationsPage({ tables, restaurant }: { tables: Table[], restaurant: Restaurant }) {
 
 
     //get date from query params
@@ -42,6 +42,7 @@ export default function CSRestaurantReservationsPage({ tables, restaurant, daySc
     const date = searchParams.get('date')
     const reservationDate = date ? new Date(date as string) : new Date();
     const [reservations, setReservations] = useState<Reservation[]>([])
+    const [daySchedules, setDaySchedules] = useState<Schedule[]>([])
     const [selectedDate, setSelectedDate] = useState<Date>(reservationDate)
     const gridWidth = 25;
 
@@ -51,9 +52,15 @@ export default function CSRestaurantReservationsPage({ tables, restaurant, daySc
         setReservations(reservations)
     }
 
+    const fetchDaySchedules = async () => {
+        const daySchedules = await getDaySchedules(restaurant.id, selectedDate.getDay())
+        setDaySchedules(daySchedules)
+    }
+
 
     useEffect(() => {
         fetchReservations();
+        fetchDaySchedules();
         const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
         const channel = supabase
             .channel('reservations-realtime')
