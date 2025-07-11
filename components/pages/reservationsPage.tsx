@@ -9,35 +9,19 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import moment from "moment"
 import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { RestaurantRepository } from "@/repositories/database"
 import { getReservationsForDay } from "@/actions/restaurantActions"
-
+import { createClient } from '@supabase/supabase-js';
+import { getOpenAndCloseTimes } from "@/services/schedulesService"
 
 
 const generateTimeSlots = (daySchedules: Schedule[]) => {
-    //daySchedules is an array of schedules for a day
+
     const timeSlots: string[] = [];
-
-    if (daySchedules.length === 0) {
-        return timeSlots;
-    }
-
-    // Find the earliest opening time and the latest closing time
-    let earliestOpeningTime = daySchedules[0].opening_time;
-    let latestClosingTime = daySchedules[0].closing_time;
-
-    daySchedules.forEach(schedule => {
-        if (schedule.opening_time < earliestOpeningTime) {
-            earliestOpeningTime = schedule.opening_time;
-        }
-        if (schedule.closing_time > latestClosingTime) {
-            latestClosingTime = schedule.closing_time;
-        }
-    });
+    const { openTime, closeTime } = getOpenAndCloseTimes(daySchedules)
 
     // Convert times to Date objects for easier manipulation
-    const currentTime = new Date(`1970-01-01T${earliestOpeningTime}`);
-    const endTime = new Date(`1970-01-01T${latestClosingTime}`);
+    const currentTime = new Date(`1970-01-01T${openTime}`);
+    const endTime = new Date(`1970-01-01T${closeTime}`);
 
     // Generate 15-minute interval slots
     while (currentTime <= endTime) {
@@ -46,6 +30,7 @@ const generateTimeSlots = (daySchedules: Schedule[]) => {
         timeSlots.push(`${hours}:${minutes}`);
         currentTime.setMinutes(currentTime.getMinutes() + 15);
     }
+
 
     return timeSlots;
 }
@@ -61,19 +46,40 @@ export default function CSRestaurantReservationsPage({ tables, restaurant, daySc
     const gridWidth = 25;
 
 
+    const fetchReservations = async () => {
+        const reservations = await getReservationsForDay(restaurant.id, selectedDate.toISOString())
+        setReservations(reservations)
+    }
+
 
     useEffect(() => {
-        const fetchReservations = async () => {
-            const reservations = await getReservationsForDay(restaurant.id, selectedDate.toISOString())
-            setReservations(reservations)
-        }
-        fetchReservations()
-    }, [selectedDate])
+        fetchReservations();
+        const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+        const channel = supabase
+            .channel('reservations-realtime')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'reservations',
+                    filter: `restaurant_id=eq.${restaurant.id}`,
+                },
+                () => {
+                    fetchReservations();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+
+    }, [restaurant.id, selectedDate]);
 
 
 
     const timeSlots = generateTimeSlots(daySchedules);
-    console.log('slots', timeSlots)
 
     const getReservationPosition = (reservation: Reservation, startTime: string) => {
 
@@ -82,7 +88,7 @@ export default function CSRestaurantReservationsPage({ tables, restaurant, daySc
         const openingHour = Number(openingTime.split(':')[0]);
 
 
-        const startDate = moment(startTime);
+        const startDate = moment(startTime).utc();
 
         const startHour = startDate.hour()
         const startMinute = startDate.minute()
@@ -101,7 +107,7 @@ export default function CSRestaurantReservationsPage({ tables, restaurant, daySc
 
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="max-w-6xl mx-auto ">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
@@ -147,10 +153,10 @@ export default function CSRestaurantReservationsPage({ tables, restaurant, daySc
 
             {/* Timeline */}
 
-            <div className="flex flex-row">
+            <div className="grid grid-cols-[140px_1fr]">
 
 
-                <table className={`w-[140px] border-collapse`}>
+                <table className={` border-collapse`}>
                     <thead>
                         <tr>
                             <th className={`p-2 text-center text-xs font-medium border-r border-b w-full`}>
@@ -171,74 +177,74 @@ export default function CSRestaurantReservationsPage({ tables, restaurant, daySc
 
 
 
-                <div className="overflow-x-auto">
-                    <table className="min-w-[1400px] w-full border-collapse">
-                        {/* Time Header */}
-                        <thead>
-                            <tr>
-                                {timeSlots.map((time) => (
-                                    (time.endsWith(":00") && (
-                                        <th
-                                            key={time}
-                                            className={`p-2 text-center text-xs font-medium border-r border-b w-full bg-muted/50 font-semibold box-border`}
-                                            style={{ width: `${gridWidth * 4}px` }}
-                                        >
-                                            {time.endsWith(":00") ? time : ""}
-                                        </th>
-                                    ))
-                                ))}
-                            </tr>
-                        </thead>
+                <div className="overflow-x-scroll w-full">
+                    {/* Time Header */}
+                    <div className="flex flex-row" style={{ width: `${(timeSlots.filter(time => time.endsWith(":00")).length - 1) * gridWidth * 4}px` }}>
+                        {timeSlots.map((time, key) => (
+                            ((time.endsWith(":00") && key !== timeSlots.length - 1) && (
+                                <div
+                                    key={time}
+                                    style={{ width: `${gridWidth * 4}px` }}
+                                    className={`p-2 text-center text-xs font-medium border-r border-b bg-muted/50 font-semibold box-border`}
+                                >
+                                    {time.endsWith(":00") ? time : ""}
+                                </div>
+                            ))
+                        ))}
+                    </div>
+                    {/* Table Rows */}
+                    {tables.map((table) => (
+                        <div key={table.id} className="hover:bg-muted/50">
 
-                        {/* Table Rows */}
-                        <tbody>
-                            {tables.map((table) => (
-                                <tr key={table.id} className="hover:bg-muted/50">
+                            {/* Timeline cells with reservations */}
+                            <div className="relative h-16 border-b" style={{ width: `${(timeSlots.length - 1) * gridWidth}px` }}>
+                                <div className="absolute inset-0 flex">
+                                    {/* Time Grid Lines */}
+                                    {timeSlots.map((time, index) => (
+                                        ((index !== timeSlots.length - 1) && (
+                                            <div
+                                                key={index}
+                                                className={`border-l h-full ${time.endsWith(":00") ? "border-gray-300" : "border-gray-100"}`}
+                                                style={{ width: `${gridWidth}px` }}
+                                            />
+                                        ))
+                                    ))}
 
-                                    {/* Timeline cells with reservations */}
-                                    <td className="relative h-16 border-b" colSpan={timeSlots.length}>
-                                        <div className="absolute inset-0 flex">
-                                            {/* Time Grid Lines */}
-                                            {timeSlots.map((time, index) => (
+                                    {/* Reservations */}
+                                    {reservations
+                                        .filter((reservation) => reservation.table_id === table.id)
+                                        .map((reservation) => {
+                                            const { left, width } = getReservationPosition(reservation, reservation.start_time)
+                                            return (
                                                 <div
-                                                    key={index}
-                                                    className={`border-l h-full ${time.endsWith(":00") ? "border-gray-300" : "border-gray-100"}`}
-                                                    style={{ width: `${gridWidth}px` }}
-                                                />
-                                            ))}
+                                                    key={reservation.id}
+                                                    className={`absolute top-1 bottom-1 rounded px-2 py-1 text-white text-xs cursor-pointer transition-colors bg-green-500 hover:bg-green-600`}
+                                                    style={{
+                                                        left: `${left}px`,
+                                                        width: `${width}px`,
+                                                        minWidth: `${gridWidth}px`,
+                                                    }}
+                                                >
+                                                    <div className="text-xs opacity-90">
+                                                        #{reservation.id}
+                                                    </div>
+                                                    <div className="font-medium truncate">Client id: {reservation.client_id}</div>
+                                                    <div className="text-xs opacity-90">
+                                                        {reservation.guests} PAXS
+                                                    </div>
 
-                                            {/* Reservations */}
-                                            {reservations
-                                                .filter((reservation) => reservation.table_id === table.id)
-                                                .map((reservation) => {
-                                                    const { left, width } = getReservationPosition(reservation, reservation.start_time)
-                                                    return (
-                                                        <div
-                                                            key={reservation.id}
-                                                            className={`absolute top-1 bottom-1 rounded px-2 py-1 text-white text-xs cursor-pointer transition-colors bg-green-500 hover:bg-green-600`}
-                                                            style={{
-                                                                left: `${left}px`,
-                                                                width: `${width}px`,
-                                                                minWidth: `${gridWidth}px`,
-                                                            }}
-                                                        >
-                                                            <div className="text-xs opacity-90">
-                                                                #{reservation.id}
-                                                            </div>
-                                                            <div className="font-medium truncate">Client id: {reservation.client_id}</div>
-                                                            <div className="text-xs opacity-90">
-                                                                {reservation.guests} PAXS
-                                                            </div>
+                                                </div>
+                                            )
+                                        })}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
 
-                                                        </div>
-                                                    )
-                                                })}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+
+
+
+
                 </div>
 
             </div>
