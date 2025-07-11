@@ -22,7 +22,7 @@ export async function POST(
     
     // PATTERN: Parse request body
     const body = await request.json()
-    const { start_time, guests, client_id, client } = body
+    const { start_time, guests, client_id, client, notes } = body
     
     // VALIDATION: Check required fields
     if (!start_time  || !guests) {
@@ -51,13 +51,13 @@ export async function POST(
     if (client) {
       // Create reservation with client data (will find or create client)
       const { name, email, phone } = client
-      if (!name || !email) {
-        return BadRequestResponse('Client name and email are required')
+      if (!name || !phone) {
+        return BadRequestResponse('Client name and phone are required')
       }
-      result = await createReservationWithClientData(restaurant.id, start_time, guests, { name, email, phone })
+      result = await createReservationWithClientData(restaurant.id, start_time, guests, { name, email, phone }, notes)
     } else if (client_id) {
       // Create reservation with existing client ID
-      result = await createReservation(restaurant.id, start_time, guests, client_id)
+      result = await createReservation(restaurant.id, start_time, guests, client_id, notes)
     } else {
       // This should never happen due to validation above
       return BadRequestResponse('Client data is required')

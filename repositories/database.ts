@@ -152,15 +152,16 @@ export class RestaurantRepository {
   }
 
   // Client CRUD operations
-  async createClient(clientData: {
-    name: string
-    email: string
-    phone?: string
-  }) {
+  async createClient(restaurantId: number, name: string, phone: string, email?: string) {
     const supabase = await this.getSupabase()
     return await supabase
       .from('clients')
-      .insert(clientData)
+      .insert({
+        name,
+        phone,
+        email,
+        restaurant_id: restaurantId
+      })
       .select()
       .single()
   }
@@ -180,6 +181,15 @@ export class RestaurantRepository {
       .from('clients')
       .select('*')
       .eq('email', email)
+      .single()
+  }
+
+  async getClientByPhone(phone: string) {
+    const supabase = await this.getSupabase()
+    return await supabase
+      .from('clients')
+      .select('*')
+      .eq('phone', phone)
       .single()
   }
 
@@ -300,6 +310,7 @@ export class RestaurantRepository {
     restaurant_id: number
     client_id: number // Now required
     confirmed: boolean
+    notes?: string
   }) {
     const supabase = await this.getSupabase()
     
@@ -336,7 +347,7 @@ export class RestaurantRepository {
     // Create reservation with the assigned table
     const finalReservationData = {
       ...reservationData,
-      table_id: tableId!
+      table_id: tableId!,
     }
     
     const result = await supabase

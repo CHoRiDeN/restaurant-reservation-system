@@ -2,10 +2,11 @@ import { RestaurantRepository } from '../repositories/database'
 import { Client } from '../lib/supabase/types'
 
 export async function createClient(
+  restaurantId: number,
   clientData: {
     name: string
-    email: string
-    phone?: string
+    email?: string
+    phone: string
   }
 ): Promise<Client> {
   const db = new RestaurantRepository()
@@ -18,13 +19,13 @@ export async function createClient(
     }
 
     // STEP 2: Check if client already exists
-    const { data: existingClient } = await db.getClientByEmail(clientData.email)
+    const { data: existingClient } = await db.getClientByPhone(clientData.phone)
     if (existingClient) {
       throw new Error('Client with this email already exists')
     }
 
     // STEP 3: Create client
-    const { data: client, error } = await db.createClient(clientData)
+    const { data: client, error } = await db.createClient(restaurantId, clientData.name, clientData.phone, clientData.email)
 
     if (error || !client) {
       throw new Error(`Failed to create client: ${error?.message || 'Unknown error'}`)
@@ -213,24 +214,6 @@ export async function validateClientData(
   }
 }
 
-export async function findOrCreateClient(
-  clientData: {
-    name: string
-    email: string
-    phone?: string
-  }
-): Promise<Client> {
-  try {
-    // Try to find existing client first
-    const existingClient = await getClientByEmail(clientData.email)
-    if (existingClient) {
-      return existingClient
-    }
 
-    // Create new client if not found
-    return await createClient(clientData)
-  } catch (error) {
-    console.error('Find or create client error:', error)
-    throw error
-  }
-}
+
+

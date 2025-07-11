@@ -46,6 +46,7 @@ export interface Reservation {
   restaurant_id: number;
   client_id: number; // Now required for all new reservations
   confirmed: boolean;
+  notes?: string;
 }
 
 export interface ScheduleException {

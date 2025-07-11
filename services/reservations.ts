@@ -1,11 +1,12 @@
-import { RestaurantRepository } from '../repositories/database'
-import { Reservation, Table, Client } from '../lib/supabase/types'
+import { RestaurantRepository } from '@/repositories/database'
+import { Reservation, Table, Client } from '@/lib/supabase/types'
 
 export async function createReservation(
   restaurantId: number,
   startTime: string,
   guests: number,
-  clientId: number
+  clientId: number,
+  notes?: string
 ): Promise<{ reservation: Reservation, table: Table, client?: Client } | null> {
   const db = new RestaurantRepository()
 
@@ -36,8 +37,8 @@ export async function createReservation(
         guests,
         restaurant_id: restaurantId,
         client_id: clientId,
-        confirmed: true
-        // Note: No table_id specified - let the system choose the best available table
+        confirmed: true,
+        notes: notes
       })
 
       return { 
@@ -121,29 +122,30 @@ export async function createReservationWithClientData(
   guests: number,
   clientData: {
     name: string
-    email: string
-    phone?: string
-  }
+    email?: string
+    phone: string
+  },
+  notes?: string
 ): Promise<{ reservation: Reservation, table: Table, client?: Client } | null> {
   const db = new RestaurantRepository()
 
   try {
     // Try to find existing client by email first
-    const { data: existingClient } = await db.getClientByEmail(clientData.email)
+    const { data: existingClient } = await db.getClientByPhone(clientData.phone)
     
     let clientId: number
     if (existingClient) {
       clientId = existingClient.id
     } else {
       // Create new client
-      const { data: newClient, error: clientError } = await db.createClient(clientData)
+      const { data: newClient, error: clientError } = await db.createClient(restaurantId, clientData.name, clientData.phone, clientData.email)
       if (clientError || !newClient) {
         throw new Error(`Failed to create client: ${clientError?.message || 'Unknown error'}`)
       }
       clientId = newClient.id
     }
 
-    return await createReservation(restaurantId, startTime, guests, clientId)
+    return await createReservation(restaurantId, startTime, guests, clientId, notes)
   } catch (error) {
     console.error('Reservation with client data creation error:', error)
     throw error
