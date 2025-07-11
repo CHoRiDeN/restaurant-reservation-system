@@ -52,13 +52,19 @@ export class RestaurantRepository {
       .eq('day_of_week', dayOfWeek)
   }
 
-  async getReservationsForDay(restaurantId: number, date: string, guests: number) {
+  async getReservationsForDay(restaurantId: number, date: string) {
     const supabase = await this.getSupabase()
-    return await supabase
+    console.log('getReservationsForDay', restaurantId, date);
+    const endDate = new Date(date);
+    endDate.setDate(endDate.getDate() + 1);
+    const { data, error } = await supabase
       .from('reservations')
       .select('*')
       .eq('restaurant_id', restaurantId)
-      .eq('start_time', date)
+      .gte('start_time', date)
+      .lte('end_time', endDate.toISOString());
+
+      return { data: data as Reservation[], error }
   }
 
   async getScheduleException(restaurantId: number, date: string) {
