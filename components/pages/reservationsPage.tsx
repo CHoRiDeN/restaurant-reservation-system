@@ -11,7 +11,7 @@ import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { getReservationsForDay } from "@/actions/restaurantActions"
 import { createClient } from '@supabase/supabase-js';
-import { getOpenAndCloseTimes } from "@/services/schedulesService"
+import { getOpenAndCloseTimes, isInSchedule } from "@/services/schedulesService"
 
 
 const generateTimeSlots = (daySchedules: Schedule[]) => {
@@ -204,7 +204,7 @@ export default function CSRestaurantReservationsPage({ tables, restaurant, daySc
                                         ((index !== timeSlots.length - 1) && (
                                             <div
                                                 key={index}
-                                                className={`border-l h-full ${time.endsWith(":00") ? "border-gray-300" : "border-gray-100"}`}
+                                                className={`border-l h-full ${time.endsWith(":00") ? "border-gray-300" : "border-gray-100"} ${isInSchedule(daySchedules, time) ? "" : "bg-slate-100"}`}
                                                 style={{ width: `${gridWidth}px` }}
                                             />
                                         ))
