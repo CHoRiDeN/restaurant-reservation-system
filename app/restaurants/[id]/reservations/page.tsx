@@ -16,7 +16,7 @@ export default async function RestaurantReservationsPage({
 
     const db = new RestaurantRepository();
 
-    const { data: tables } = await db.getTables(Number(id));
+    const tables = await db.getTables(Number(id));
 
     const { data: reservations } = await db.getReservationsForDay(
         Number(id),
@@ -24,14 +24,14 @@ export default async function RestaurantReservationsPage({
     );
 
     const restaurant = await db.getRestaurant(Number(id));
-    const { data: daySchedule } = await db.getSchedule(Number(id), weekDay);
+    const daySchedules = await db.getSchedules(Number(id), weekDay);
    
 
     return <ReservationsPage 
     reservations={reservations} 
     tables={tables || []} 
     restaurant={restaurant} 
-    daySchedules={daySchedule || []} 
+    daySchedules={daySchedules || []} 
     selectedDate={reservationDate}
     />;
 }

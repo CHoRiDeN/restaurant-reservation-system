@@ -23,8 +23,7 @@ export async function getAvailableTablesForSlot(
     const restaurant = await db.getRestaurant(restaurantId)
 
     // Get suitable tables
-    const { data: tables } = await db.getTables(restaurantId, guests)
-    if (!tables) return []
+    const tables = await db.getTables(restaurantId, guests)
 
     // Filter available tables for this specific time slot
     const slotDateTime = new Date(`${date}T${time}:00Z`)

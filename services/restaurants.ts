@@ -50,11 +50,9 @@ export async function getRestaurantTables(restaurantId: number, minCapacity?: nu
   const db = new RestaurantRepository()
   
   try {
-    const { data: tables, error } = await db.getTables(restaurantId, minCapacity)
+    const tables = await db.getTables(restaurantId, minCapacity)
     
-    if (error) {
-      return []
-    }
+    
     
     return tables || []
   } catch (error) {

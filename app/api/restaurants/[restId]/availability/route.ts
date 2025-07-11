@@ -44,17 +44,7 @@ export async function GET(
     // PATTERN: Business logic - enhanced availability with table counts
     const availability = await checkAvailabilityUseCase(restaurant.id, datetime, guests)
     
-    return createSuccessResponse({
-      datetime,
-      guests,
-      availability: availability,
-      restaurant: {
-        id: restaurant.id,
-        name: restaurant.name,
-        reservationDuration: restaurant.reservation_duration,
-        bufferTime: restaurant.buffer_time
-      }
-    })
+    return createSuccessResponse(availability)
   } catch (error) {
     console.error('Availability check error:', error)
     return InternalServerErrorResponse('Unable to check availability')

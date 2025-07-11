@@ -1,66 +1,69 @@
 import { RestaurantRepository } from "@/repositories/database"
 import { Table } from "@/lib/supabase/types"
+import { getAvailableSlotsForDayAndTable } from "@/services/tableService"
 
 export async function checkAvailabilityUseCase(
-    restaurantId: number,
-    datetime: string,
-    guests: number
-  ): Promise<{ availableSlots: string[], tables: Table[], tablesAvailable: number, totalTables: number }> {
-    const db = new RestaurantRepository()
-  
-    try {
-      // STEP 1: Get restaurant configuration
-      const restaurant = await db.getRestaurant(restaurantId)
-   
-  
-      // STEP 2: Get day of week (0=Sunday, 6=Saturday)
-      const requestDate = new Date(datetime)
-      const dayOfWeek = requestDate.getDay()
-      console.log('dayOfWeek', dayOfWeek)
-  
-      // STEP 3: Get schedule for the day
-      const { data: schedules, error: scheduleError } = await db.getSchedule(restaurantId, dayOfWeek)
-      if (scheduleError || !schedules) {
-        return { availableSlots: [], tables: [], tablesAvailable: 0, totalTables: 0 }
-      }
-  
-      
-      const requestEnd = new Date(requestDate.getTime() + restaurant.reservation_duration * 60000)
-  
-  
-      console.log('looking for available table', requestDate, requestEnd, guests)
-      const availableTable = await db.findAvailableTable(
-        restaurantId,
-        requestDate.toISOString(),
-        requestEnd.toISOString(),
-        guests
-      )
-  
-      console.log('availableTable', availableTable)
-      const { data: tables, error: tablesError } = await db.getTables(restaurantId, guests)
-      console.log('tables', tables)
-      if (tablesError || !tables || tables.length === 0) {
-        return { availableSlots: [], tables: [], tablesAvailable: 0, totalTables: 0 }
-      }
-  
-    
-  
-      // STEP 7: Get total table count for the guest capacity
-      const totalTables = await db.getTotalTableCount(restaurantId, guests)
-      console.log('totalTables', totalTables)
-  
-  
-      // STEP 9: Calculate overall table availability
-      
-  
+  restaurantId: number,
+  datetime: string,
+  guests: number
+): Promise<{ isAvailable: boolean, availableTables: Table[], alternativeSlots: { start_time: Date, end_time: Date }[] }> {
+  const db = new RestaurantRepository()
+
+  try {
+    const restaurant = await db.getRestaurant(restaurantId)
+
+
+    // STEP 2: Get day of week (0=Sunday, 6=Saturday)
+    const requestDate = new Date(datetime)
+    const dayOfWeek = requestDate.getDay()
+    console.log('dayOfWeek', dayOfWeek)
+
+
+    const requestEnd = new Date(requestDate.getTime() + restaurant.reservation_duration * 60000)
+
+
+    console.log('looking for available table', requestDate, requestEnd, guests)
+    const availableTables = await db.findAvailableTables(
+      restaurantId,
+      requestDate.toISOString(),
+      requestEnd.toISOString(),
+      guests
+    )
+
+    if (availableTables) {
       return {
-        availableSlots: [],
-        tables,
-        tablesAvailable: tables.length,
-        totalTables
+        isAvailable: true,
+        availableTables: availableTables,
+        alternativeSlots: []
       }
-    } catch (error) {
-      console.error('Availability check error:', error)
-      return { availableSlots: [], tables: [], tablesAvailable: 0, totalTables: 0 }
+    }else{
+
+    }
+
+    const tables = await db.getTables(restaurantId, guests)
+    console.log('tables', tables)
+    if(tables.length === 0) {
+      return {
+        isAvailable: false,
+        availableTables: [],
+        alternativeSlots: []
+      }
+    }
+    const slots = await getAvailableSlotsForDayAndTable(restaurantId, requestDate, tables[0].id)
+    console.log('slots for table 1', slots)
+
+
+    return {
+      isAvailable: false,
+      availableTables: [],
+      alternativeSlots: slots
+    }
+  } catch (error) {
+    console.error('Availability check error:', error)
+    return {
+      isAvailable: false,
+      availableTables: [],
+      alternativeSlots: []
     }
   }
+}

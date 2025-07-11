@@ -22,7 +22,7 @@ export class RestaurantRepository {
 
   async getRestaurant(id: number) {
     const supabase = await this.getSupabase()
-    const {data, error} = await supabase
+    const { data, error } = await supabase
       .from('restaurants')
       .select('*')
       .eq('id', id)
@@ -31,7 +31,7 @@ export class RestaurantRepository {
     if (error) {
       throw new Error(`Error getting restaurant: ${error.message}`)
     }
-    if(!data) {
+    if (!data) {
       throw new Error(`Restaurant not found`)
     }
     return data
@@ -48,16 +48,25 @@ export class RestaurantRepository {
       query = query.gte('capacity', minCapacity)
     }
 
-    return await query.order('capacity', { ascending: true })
+    const { data, error } = await query.order('capacity', { ascending: true })
+    if (error) {
+      throw new Error(`Error getting tables: ${error.message}`)
+    }
+    return data
   }
 
-  async getSchedule(restaurantId: number, dayOfWeek: number) {
+  async getSchedules(restaurantId: number, dayOfWeek: number) {
     const supabase = await this.getSupabase()
-    return await supabase
+    const {data, error} = await supabase
       .from('schedules')
       .select('*')
       .eq('restaurant_id', restaurantId)
       .eq('day_of_week', dayOfWeek)
+
+    if (error) {
+      throw new Error(`Error getting schedules: ${error.message}`)
+    }
+    return data
   }
 
   async getReservationsForDay(restaurantId: number, date: string) {
@@ -72,7 +81,7 @@ export class RestaurantRepository {
       .gte('start_time', date)
       .lte('end_time', endDate.toISOString());
 
-      return { data: data as Reservation[], error }
+    return { data: data as Reservation[], error }
   }
 
   async getScheduleException(restaurantId: number, date: string) {
@@ -92,7 +101,7 @@ export class RestaurantRepository {
     bufferTime: number
   ) {
     const supabase = await this.getSupabase()
-    
+
     // Get all reservations for this table that might conflict
     // With the new schema, we use start_time and end_time directly
     const { data, error } = await supabase
@@ -101,12 +110,12 @@ export class RestaurantRepository {
       .eq('table_id', tableId)
       .eq('confirmed', true)
       .gte('end_time', new Date().toISOString()) // Only check future/current reservations
-    
+
     if (error || !data) {
       return { data: [], error }
     }
-    
-   
+
+
     // Filter reservations that actually conflict with the time window
     const conflicts = data.filter(reservation => {
       const reservationStart = new Date(reservation.start_time)
@@ -116,7 +125,7 @@ export class RestaurantRepository {
       const bufferEnd = new Date(reservationEnd.getTime() + bufferTime * 60000)
       return reservationStart < requestEnd && requestStart < bufferEnd
     })
-    
+
     return { data: conflicts, error: null }
   }
 
@@ -135,6 +144,25 @@ export class RestaurantRepository {
       .insert(reservationData)
       .select()
       .single()
+  }
+
+  async getTableReservations(restaurantId: number, tableId: number, date: Date) {
+    const supabase = await this.getSupabase()
+    const startOfDay = new Date(date.setUTCHours(0, 0, 0, 0))
+    const endOfDay = new Date(date.setUTCHours(23, 59, 59, 999))
+    const { data, error } = await supabase
+      .from('reservations')
+      .select('*')
+      .eq('restaurant_id', restaurantId)
+      .eq('table_id', tableId)
+      .gte('start_time', startOfDay.toISOString())
+      .lte('end_time', endOfDay.toISOString())
+      .order('start_time', { ascending: true })
+
+    if (error) {
+      throw new Error(`Error getting table reservations: ${error.message}`)
+    }
+    return data
   }
 
   async getReservations(restaurantId: number, filters?: {
@@ -211,7 +239,7 @@ export class RestaurantRepository {
       ...updates,
       updated_at: new Date().toISOString()
     }
-    
+
     return await supabase
       .from('clients')
       .update(updateData)
@@ -261,13 +289,12 @@ export class RestaurantRepository {
     guests: number
   ): Promise<number> {
     const supabase = await this.getSupabase()
-    
+
     // Get restaurant configuration
     const restaurant = await this.getRestaurant(restaurantId)
 
     // Get suitable tables
-    const { data: tables } = await this.getTables(restaurantId, guests)
-    if (!tables || tables.length === 0) return 0
+    const tables = await this.getTables(restaurantId, guests)
 
     // Calculate time windows with proper buffer handling
     const requestStart = new Date(startTime)
@@ -275,7 +302,7 @@ export class RestaurantRepository {
 
     // Check availability for each table using the enhanced conflict detection
     let availableCount = 0
-    
+
     for (const table of tables) {
       const { data: conflicts } = await this.getConflictingReservations(
         table.id,
@@ -283,7 +310,7 @@ export class RestaurantRepository {
         requestEnd.toISOString(),
         restaurant.buffer_time
       )
-      
+
       if (!conflicts || conflicts.length === 0) {
         availableCount++
       }
@@ -320,25 +347,25 @@ export class RestaurantRepository {
     notes?: string
   }) {
     const supabase = await this.getSupabase()
-    
+
     let tableId = reservationData.table_id
-    
+
     // If no table specified, find an available one
     if (!tableId) {
-      const availableTable = await this.findAvailableTable(
+      const availableTables = await this.findAvailableTables(
         reservationData.restaurant_id,
         reservationData.start_time,
         reservationData.end_time,
         reservationData.guests
       )
-      
-      if (!availableTable) {
+
+      if (!availableTables) {
         throw new Error('No available tables for the requested time and guest count')
       }
-      
-      tableId = availableTable.id
+
+      tableId = availableTables[0].id
     }
-    
+
     // Double-check the specific table is available (prevent race conditions)
     const isTableAvailable = await this.isTableAvailableForReservation(
       tableId!,
@@ -346,17 +373,17 @@ export class RestaurantRepository {
       reservationData.end_time,
       reservationData.restaurant_id
     )
-    
+
     if (!isTableAvailable) {
       throw new Error('Selected table is no longer available')
     }
-    
+
     // Create reservation with the assigned table
     const finalReservationData = {
       ...reservationData,
       table_id: tableId!,
     }
-    
+
     const result = await supabase
       .from('reservations')
       .insert(finalReservationData)
@@ -384,9 +411,9 @@ export class RestaurantRepository {
       client: result.data.clients
     }
   }
-  
+
   // Find an available table for a reservation
-  public async findAvailableTable(
+  public async findAvailableTables(
     restaurantId: number,
     startTime: string,
     endTime: string,
@@ -396,14 +423,14 @@ export class RestaurantRepository {
     const restaurant = await this.getRestaurant(restaurantId)
 
     // Get suitable tables (ordered by capacity ascending to prefer smaller tables)
-    const { data: tables } = await this.getTables(restaurantId, guests)
-    if (!tables || tables.length === 0) return null
+    const tables = await this.getTables(restaurantId, guests)
 
     // Calculate time windows with buffer
     const requestStart = new Date(startTime)
     const requestEnd = new Date(endTime)
 
 
+    let availableTables: Table[] = []
     // Check each table for availability
     for (const table of tables) {
       const { data: conflicts } = await this.getConflictingReservations(
@@ -412,18 +439,20 @@ export class RestaurantRepository {
         requestEnd.toISOString(),
         restaurant.buffer_time
       )
-     
-      
+
+
       if (!conflicts || conflicts.length === 0) {
-        return table // Return first available table
+        availableTables.push(table)
       }
     }
-    
-    return null // No available tables
+    if (availableTables.length === 0) {
+      return null
+    }
+    return availableTables
   }
-  
+
   // Check if a specific table is available for a reservation
-  private async isTableAvailableForReservation(
+  public async isTableAvailableForReservation(
     tableId: number,
     startTime: string,
     endTime: string,
@@ -441,7 +470,7 @@ export class RestaurantRepository {
       requestEnd.toISOString(),
       restaurant.buffer_time
     )
-    
+
     return !conflicts || conflicts.length === 0
   }
 }
