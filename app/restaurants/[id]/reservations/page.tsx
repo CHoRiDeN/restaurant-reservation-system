@@ -23,7 +23,7 @@ export default async function RestaurantReservationsPage({
         reservationDate.toISOString()
     );
 
-    const { data: restaurant } = await db.getRestaurant(Number(id));
+    const restaurant = await db.getRestaurant(Number(id));
     const { data: daySchedule } = await db.getSchedule(Number(id), weekDay);
    
 

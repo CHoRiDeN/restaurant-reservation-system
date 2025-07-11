@@ -1,5 +1,5 @@
+import { checkAvailabilityUseCase } from '@/useCases/availabilityUseCases'
 import { authenticateApiKey } from '../../../../../lib/auth/api-auth'
-import { checkAvailability } from '../../../../../services/availability'
 import { createSuccessResponse, UnauthorizedResponse, ForbiddenResponse, BadRequestResponse, InternalServerErrorResponse } from '../../../../../lib/utils/responses'
 
 export async function GET(
@@ -42,7 +42,7 @@ export async function GET(
     }
     
     // PATTERN: Business logic - enhanced availability with table counts
-    const availability = await checkAvailability(restaurant.id, datetime, guests)
+    const availability = await checkAvailabilityUseCase(restaurant.id, datetime, guests)
     
     return createSuccessResponse({
       datetime,

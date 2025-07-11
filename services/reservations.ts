@@ -24,7 +24,7 @@ export async function createReservation(
     }
     const client = clientData
 
-    const { data: restaurant } = await db.getRestaurant(restaurantId)
+    const restaurant = await db.getRestaurant(restaurantId)
     const reservationDuration = restaurant?.reservation_duration
     const requestStart = new Date(startTime)
     const requestEnd =  new Date(requestStart.getTime() + reservationDuration * 60000)
@@ -105,10 +105,8 @@ export async function validateReservationRequest(
 
   // Validate restaurant exists
   const db = new RestaurantRepository()
-  const { data: restaurant } = await db.getRestaurant(restaurantId)
-  if (!restaurant) {
-    errors.push('Restaurant not found')
-  }
+  const restaurant = await db.getRestaurant(restaurantId)
+
 
   return {
     valid: errors.length === 0,

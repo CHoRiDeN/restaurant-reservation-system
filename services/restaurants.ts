@@ -35,11 +35,9 @@ export async function getRestaurantById(restaurantId: number): Promise<Restauran
   const db = new RestaurantRepository()
   
   try {
-    const { data: restaurant, error } = await db.getRestaurant(restaurantId)
+    const restaurant = await db.getRestaurant(restaurantId)
     
-    if (error || !restaurant) {
-      return null
-    }
+ 
     
     return restaurant as Restaurant
   } catch (error) {

@@ -22,11 +22,19 @@ export class RestaurantRepository {
 
   async getRestaurant(id: number) {
     const supabase = await this.getSupabase()
-    return await supabase
+    const {data, error} = await supabase
       .from('restaurants')
       .select('*')
       .eq('id', id)
       .single()
+
+    if (error) {
+      throw new Error(`Error getting restaurant: ${error.message}`)
+    }
+    if(!data) {
+      throw new Error(`Restaurant not found`)
+    }
+    return data
   }
 
   async getTables(restaurantId: number, minCapacity?: number) {
@@ -255,8 +263,7 @@ export class RestaurantRepository {
     const supabase = await this.getSupabase()
     
     // Get restaurant configuration
-    const { data: restaurant } = await this.getRestaurant(restaurantId)
-    if (!restaurant) return 0
+    const restaurant = await this.getRestaurant(restaurantId)
 
     // Get suitable tables
     const { data: tables } = await this.getTables(restaurantId, guests)
@@ -386,8 +393,7 @@ export class RestaurantRepository {
     guests: number
   ) {
     // Get restaurant configuration
-    const { data: restaurant } = await this.getRestaurant(restaurantId)
-    if (!restaurant) return null
+    const restaurant = await this.getRestaurant(restaurantId)
 
     // Get suitable tables (ordered by capacity ascending to prefer smaller tables)
     const { data: tables } = await this.getTables(restaurantId, guests)
@@ -424,8 +430,7 @@ export class RestaurantRepository {
     restaurantId: number
   ): Promise<boolean> {
     // Get restaurant configuration for buffer time
-    const { data: restaurant } = await this.getRestaurant(restaurantId)
-    if (!restaurant) return false
+    const restaurant = await this.getRestaurant(restaurantId)
 
     const requestStart = new Date(startTime)
     const requestEnd = new Date(endTime)
