@@ -7,6 +7,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { format } from "date-fns"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import moment from "moment"
+import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { RestaurantRepository } from "@/repositories/database"
+import { getReservationsForDay } from "@/actions/restaurantActions"
 
 
 
@@ -45,11 +49,28 @@ const generateTimeSlots = (daySchedules: Schedule[]) => {
 
     return timeSlots;
 }
-export default function CSRestaurantReservationsPage({ reservations, tables, restaurant, daySchedules, selectedDate }: { reservations: Reservation[], tables: Table[], restaurant: Restaurant, daySchedules: Schedule[], selectedDate: Date }) {
+export default function CSRestaurantReservationsPage({ tables, restaurant, daySchedules }: { tables: Table[], restaurant: Restaurant, daySchedules: Schedule[] }) {
 
 
+    //get date from query params
+    const searchParams = useSearchParams()
+    const date = searchParams.get('date')
+    const reservationDate = date ? new Date(date as string) : new Date();
+    const [reservations, setReservations] = useState<Reservation[]>([])
+    const [selectedDate, setSelectedDate] = useState<Date>(reservationDate)
     const gridWidth = 25;
-    console.log('restaurant', restaurant)
+
+
+
+    useEffect(() => {
+        const fetchReservations = async () => {
+            const reservations = await getReservationsForDay(restaurant.id, selectedDate.toISOString())
+            setReservations(reservations)
+        }
+        fetchReservations()
+    }, [selectedDate])
+
+
 
     const timeSlots = generateTimeSlots(daySchedules);
     console.log('slots', timeSlots)
@@ -60,13 +81,13 @@ export default function CSRestaurantReservationsPage({ reservations, tables, res
         const openingTime = timeSlots[0];
         const openingHour = Number(openingTime.split(':')[0]);
 
- 
+
         const startDate = moment(startTime);
 
         const startHour = startDate.hour()
         const startMinute = startDate.minute()
 
-    
+
         const hourIntervals = (startHour - openingHour) * 4 * gridWidth;
         const minuteIntervals = startMinute / 15 * gridWidth;
         const startPosition = hourIntervals + minuteIntervals;
@@ -85,13 +106,13 @@ export default function CSRestaurantReservationsPage({ reservations, tables, res
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
                     <h1 className="text-2xl font-bold">Restaurant Reservations</h1>
-                   
+
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => console.log(selectedDate)}
+                        onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}
                     >
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -107,7 +128,7 @@ export default function CSRestaurantReservationsPage({ reservations, tables, res
                             <CalendarComponent
                                 mode="single"
                                 selected={selectedDate}
-                                onSelect={(date) => console.log(date)}
+                                onSelect={(date) => setSelectedDate(date || new Date())}
                             />
                         </PopoverContent>
                     </Popover>
@@ -115,13 +136,13 @@ export default function CSRestaurantReservationsPage({ reservations, tables, res
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => console.log(selectedDate)}
+                        onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
                     >
                         <ChevronRight className="h-4 w-4" />
                     </Button>
                 </div>
 
-            
+
             </div>
 
             {/* Timeline */}
@@ -201,14 +222,14 @@ export default function CSRestaurantReservationsPage({ reservations, tables, res
                                                                 minWidth: `${gridWidth}px`,
                                                             }}
                                                         >
-                                                             <div className="text-xs opacity-90">
-                                                               #{reservation.id}
+                                                            <div className="text-xs opacity-90">
+                                                                #{reservation.id}
                                                             </div>
                                                             <div className="font-medium truncate">Client id: {reservation.client_id}</div>
                                                             <div className="text-xs opacity-90">
                                                                 {reservation.guests} PAXS
                                                             </div>
-                                                           
+
                                                         </div>
                                                     )
                                                 })}

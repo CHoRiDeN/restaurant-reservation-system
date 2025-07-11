@@ -51,6 +51,8 @@ export async function checkAvailabilityUseCase(
     }
     const slots = await getAvailableSlotsForDayAndTable(restaurantId, requestDate, tables[0].id)
     console.log('slots for table 1', slots)
+    //TODO: de cada mesa obtener suggestedReservation anterior y posterior
+    //TODO: mergearlos todos y ordenarlos
 
 
     return {

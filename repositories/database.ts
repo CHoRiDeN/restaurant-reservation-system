@@ -81,7 +81,11 @@ export class RestaurantRepository {
       .gte('start_time', date)
       .lte('end_time', endDate.toISOString());
 
-    return { data: data as Reservation[], error }
+    if (error) {
+      throw new Error(`Error getting reservations for day: ${error.message}`)
+    }
+
+    return data as Reservation[];
   }
 
   async getScheduleException(restaurantId: number, date: string) {
