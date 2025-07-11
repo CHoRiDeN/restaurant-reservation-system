@@ -31,7 +31,7 @@ export default async function RestaurantReservationsPage({
     reservations={reservations} 
     tables={tables || []} 
     restaurant={restaurant} 
-    daySchedule={daySchedule || []} 
+    daySchedules={daySchedule || []} 
     selectedDate={reservationDate}
     />;
 }

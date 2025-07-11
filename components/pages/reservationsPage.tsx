@@ -73,26 +73,66 @@ const timeSlots = [
 ]
 
 
-export default function CSRestaurantReservationsPage({ reservations, tables, restaurant, daySchedule, selectedDate }: { reservations: Reservation[], tables: Table[], restaurant: Restaurant, daySchedule: Schedule[], selectedDate: Date }) {
+const generateTimeSlots = (daySchedules: Schedule[]) => {
+    //daySchedules is an array of schedules for a day
+    const timeSlots: string[] = [];
+
+    if (daySchedules.length === 0) {
+        return timeSlots;
+    }
+
+    // Find the earliest opening time and the latest closing time
+    let earliestOpeningTime = daySchedules[0].opening_time;
+    let latestClosingTime = daySchedules[0].closing_time;
+
+    daySchedules.forEach(schedule => {
+        if (schedule.opening_time < earliestOpeningTime) {
+            earliestOpeningTime = schedule.opening_time;
+        }
+        if (schedule.closing_time > latestClosingTime) {
+            latestClosingTime = schedule.closing_time;
+        }
+    });
+
+    // Convert times to Date objects for easier manipulation
+    let currentTime = new Date(`1970-01-01T${earliestOpeningTime}`);
+    const endTime = new Date(`1970-01-01T${latestClosingTime}`);
+
+    // Generate 15-minute interval slots
+    while (currentTime <= endTime) {
+        const hours = currentTime.getHours().toString().padStart(2, '0');
+        const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+        timeSlots.push(`${hours}:${minutes}`);
+        currentTime.setMinutes(currentTime.getMinutes() + 15);
+    }
+
+    return timeSlots;
+}
+export default function CSRestaurantReservationsPage({ reservations, tables, restaurant, daySchedules, selectedDate }: { reservations: Reservation[], tables: Table[], restaurant: Restaurant, daySchedules: Schedule[], selectedDate: Date }) {
 
 
     const gridWidth = 25;
     const [selectedReservation, setSelectedReservation] = useState<any>(null)
 
+    const timeSlots = generateTimeSlots(daySchedules);
+    console.log('slots', timeSlots)
+
     const getReservationPosition = (reservation: Reservation, startTime: string, endTime: string) => {
 
-        console.log('res',reservation.id, startTime, endTime)
+
+        const openingTime = timeSlots[0];
+        const openingHour = Number(openingTime.split(':')[0]);
+        const openingMinute = Number(openingTime.split(':')[1]);
+
+ 
         const startDate = moment(startTime);
         const endDate = moment(endTime);
 
         const startHour = startDate.hour()
         const startMinute = startDate.minute()
-        console.log('startDate', startHour, startMinute)
 
-
-
-        // Calculate position based on 15-minute intervals starting from 9:00
-        const hourIntervals = (startHour - 9) * 4 * gridWidth;
+    
+        const hourIntervals = (startHour - openingHour) * 4 * gridWidth;
         const minuteIntervals = startMinute / 15 * gridWidth;
         const startPosition = hourIntervals + minuteIntervals;
         const width = gridWidth * 4
@@ -184,9 +224,8 @@ export default function CSRestaurantReservationsPage({ reservations, tables, res
                                     (time.endsWith(":00") && (
                                         <th
                                             key={time}
-                                            className={`p-2 text-center text-xs font-medium border-r border-b w-full ${time.endsWith(":00") ? "bg-muted/50 font-semibold" : ""
-                                                }`}
-                                            style={{ minWidth: `${gridWidth * 4}px` }}
+                                            className={`p-2 text-center text-xs font-medium border-r border-b w-full bg-muted/50 font-semibold box-border`}
+                                            style={{ width: `${gridWidth * 4}px` }}
                                         >
                                             {time.endsWith(":00") ? time : ""}
                                         </th>
@@ -228,10 +267,14 @@ export default function CSRestaurantReservationsPage({ reservations, tables, res
                                                             }}
                                                             onClick={() => setSelectedReservation(reservation)}
                                                         >
+                                                             <div className="text-xs opacity-90">
+                                                               #{reservation.id}
+                                                            </div>
                                                             <div className="font-medium truncate">Client id: {reservation.client_id}</div>
                                                             <div className="text-xs opacity-90">
                                                                 {reservation.guests} PAXS
                                                             </div>
+                                                           
                                                         </div>
                                                     )
                                                 })}
