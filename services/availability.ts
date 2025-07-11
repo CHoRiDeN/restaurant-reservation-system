@@ -104,7 +104,8 @@ export async function getAvailableTablesForSlot(
       const { data: conflictingReservations } = await db.getConflictingReservations(
         table.id,
         bufferStart.toISOString(),
-        bufferEnd.toISOString()
+        bufferEnd.toISOString(),
+        guests
       )
 
       if (!conflictingReservations || conflictingReservations.length === 0) {

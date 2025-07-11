@@ -6,19 +6,19 @@ export default async function RestaurantReservationsPage({
     params,
     searchParams,
 }: {
-    params: { id: string }
-    searchParams: { date?: string }
+    params: Promise<{ id: string }>
+    searchParams: Promise<{ date?: string }>
 }) {
-    const { id } = await params
-    const { date } = await searchParams
-    const reservationDate = date ? new Date(date) : new Date();
+    const { id } =  await params
+    const { date } =  await searchParams
+    const reservationDate = date ? new Date(date as string) : new Date();
     const weekDay = reservationDate.getDay();
 
     const db = new RestaurantRepository();
 
     const { data: tables } = await db.getTables(Number(id));
 
-    const { data: reservations, error } = await db.getReservationsForDay(
+    const { data: reservations } = await db.getReservationsForDay(
         Number(id),
         reservationDate.toISOString()
     );
