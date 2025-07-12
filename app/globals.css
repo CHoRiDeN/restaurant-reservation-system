@@ -1,14 +1,12 @@
 @import "tailwindcss";
-@import "@radix-ui/themes/styles.css";
 @import "tw-animate-css";
-@import url('https://fonts.googleapis.com/css?family=Inter:400,500,700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Inter', var(--font-geist-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -53,7 +51,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.56 0.0939 153.84);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -114,30 +112,41 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
-  body {
-    @apply text-foreground;
-  }
-}
-
-
 body {
   background: linear-gradient(to bottom, #E3F9FF, #F6F7F8);
   min-height: 100dvh;
-  font-family: "Inter", sans-serif;
-  font-optical-sizing: auto;
 }
 
-h1{
+h1 {
   @apply text-3xl font-semibold;
 }
 
-.white-card{
+.white-card {
   @apply bg-white rounded-[12px];
+  box-shadow: 0 1px 4px 0 #0000001A;
+  stroke: 1px white;
+  backdrop-filter: blur(16px);
+}
+
+.bookings-card {
+  @apply bg-white/35 rounded-[12px] p-2;
+  box-shadow: 0 1px 4px 0 #0000001A;
+  stroke: 1px white;
+  backdrop-filter: blur(16px);
+}
+
+.tables-column {
+  @apply bg-white rounded-l-[12px] mt-[33px] border border-gray-200;
+}
+
+.table-row {
+  @apply h-[100px] w-full px-3 py-2 flex flex-col justify-between;
+
+
+}
+
+.reservation-card {
+  @apply bg-white rounded-[8px] px-3 py-2;
   box-shadow: 0 1px 4px 0 #0000001A;
   stroke: 1px white;
   backdrop-filter: blur(16px);

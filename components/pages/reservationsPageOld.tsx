@@ -12,7 +12,6 @@ import { useSearchParams } from "next/navigation"
 import { getDaySchedules, getReservationsForDay } from "@/actions/restaurantActions"
 import { createClient } from '@supabase/supabase-js';
 import { getOpenAndCloseTimes, isInSchedule } from "@/services/schedulesService"
-import Image from "next/image"
 
 
 const generateTimeSlots = (daySchedules: Schedule[]) => {
@@ -45,7 +44,7 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
     const [reservations, setReservations] = useState<Reservation[]>([])
     const [daySchedules, setDaySchedules] = useState<Schedule[]>([])
     const [selectedDate, setSelectedDate] = useState<Date>(reservationDate)
-    const gridWidth = 52;
+    const gridWidth = 25;
 
 
     const fetchReservations = async () => {
@@ -109,17 +108,17 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
 
 
 
-        return { left: startPosition + 5, width: width - 10 }
+        return { left: startPosition, width: width }
     }
 
 
 
     return (
-        <div className="w-full px-16 mt-6">
+        <div className="max-w-6xl mx-auto ">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    <h1 >Reservas</h1>
+                    <h1 className="text-2xl font-bold">Restaurant Reservations</h1>
 
                 </div>
                 <div className="flex items-center gap-2">
@@ -161,37 +160,64 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
 
             {/* Timeline */}
 
-            <div className="bookings-card w-full grid grid-cols-[200px_1fr]">
-                {/* Mesas */}
-                <div className="tables-column flex flex-col divide-y divide-gray-200">
-                    {tables.map((table) => (
-                        <div key={table.id} className="table-row">
-                            <div className="text-[15px]">Mesa #{table.id}</div>
-                            <div className="text-[13px] text-gray-500">{table.capacity} Comensales</div>
-                        </div>
-                    ))}
-                </div>
-                {/* Reservas */}
-                <div className="overflow-x-scroll w-full h-full">
-                    <div className="relative flex flex-row h-full" style={{ width: `${(timeSlots.filter(time => time.endsWith(":00")).length - 1) * gridWidth * 4}px` }}>
+            <div className="grid grid-cols-[140px_1fr]">
+
+
+                <table className={` border-collapse`}>
+                    <thead>
+                        <tr>
+                            <th className={`p-2 text-center text-xs font-medium border-r border-b w-full`}>
+                                Mesa
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {tables.map((table) => (
+                            <tr key={table.id}>
+                                <td className={`p-2 text-center text-xs font-medium border-r border-b w-full`}>
+                                    #{table.id} {table.capacity} PAXS
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+
+
+                <div className="overflow-x-scroll w-full">
+                    {/* Time Header */}
+                    <div className="flex flex-row" style={{ width: `${(timeSlots.filter(time => time.endsWith(":00")).length - 1) * gridWidth * 4}px` }}>
                         {timeSlots.map((time, key) => (
                             ((time.endsWith(":00") && key !== timeSlots.length - 1) && (
                                 <div
                                     key={time}
                                     style={{ width: `${gridWidth * 4}px` }}
-                                    className={`h-full  border-r  border-gray-200 `}
+                                    className={`p-2 text-center text-xs font-medium border-r border-b bg-muted/50 font-semibold box-border`}
                                 >
-                                    <div className="text-[13px] text-gray-500 h-[33px] flex items-center pl-1">{time}</div>
-                                    <div className="border-t border-gray-200 "></div>
+                                    {time.endsWith(":00") ? time : ""}
                                 </div>
                             ))
                         ))}
+                    </div>
+                    {/* Table Rows */}
+                    {tables.map((table) => (
+                        <div key={table.id} className="hover:bg-muted/50">
 
-                        <div className="absolute inset-0 flex top-[33px] flex-col">
+                            {/* Timeline cells with reservations */}
+                            <div className="relative h-16 border-b" style={{ width: `${(timeSlots.length - 1) * gridWidth}px` }}>
+                                <div className="absolute inset-0 flex">
+                                    {/* Time Grid Lines */}
+                                    {timeSlots.map((time, index) => (
+                                        ((index !== timeSlots.length - 1) && (
+                                            <div
+                                                key={index}
+                                                className={`border-l h-full ${time.endsWith(":00") ? "border-gray-300" : "border-gray-100"} ${isInSchedule(daySchedules, time) ? "" : "bg-slate-100"}`}
+                                                style={{ width: `${gridWidth}px` }}
+                                            />
+                                        ))
+                                    ))}
 
-                            {/* Reservations */}
-                            {tables.map((table) => (
-                                <div className="relative flex flex-row border-b border-gray-200 h-[101px]" style={{ width: `${(timeSlots.filter(time => time.endsWith(":00")).length - 1) * gridWidth * 4}px` }}>
+                                    {/* Reservations */}
                                     {reservations
                                         .filter((reservation) => reservation.table_id === table.id)
                                         .map((reservation) => {
@@ -199,35 +225,33 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
                                             return (
                                                 <div
                                                     key={reservation.id}
-                                                    className={`absolute top-1 bottom-1 reservation-card flex flex-col justify-between`}
+                                                    className={`absolute bg-red-500 top-1 bottom-1 rounded px-2 py-1 text-white text-xs cursor-pointer transition-colors bg-green-500 hover:bg-green-600`}
                                                     style={{
                                                         left: `${left}px`,
                                                         width: `${width}px`,
                                                         minWidth: `${gridWidth}px`,
                                                     }}
                                                 >
-                                                    <div className="flex flex-row justify-between items-center text-[13px]">
-                                                        <div>{new Date(reservation.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                                        <div className="flex flex-row items-center gap-1 text-gray-500 ">
-                                                            <div>{reservation.guests}</div>
-                                                            <Image src="/images/icons/people.svg" alt="paxs" width={15} height={15} />
-                                                        </div>
+                                                    <div className="text-xs opacity-90">
+                                                        #{reservation.id}
                                                     </div>
-                                                    <div className="flex flex-row gap-2 items-center text-[15px]">
-                                                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                        <div>{reservation.client_id}</div>
+                                                    <div className="font-medium truncate">Client id: {reservation.client_id}</div>
+                                                    <div className="text-xs opacity-90">
+                                                        {reservation.guests} PAXS
                                                     </div>
 
                                                 </div>
                                             )
                                         })}
                                 </div>
-                            ))}
+                            </div>
                         </div>
+                    ))}
 
 
 
-                    </div>
+
+
                 </div>
 
             </div>
