@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import {
   ClerkProvider,
-  SignedIn,
-  UserButton,
 } from "@clerk/nextjs";
 import "./globals.css";
-import { Theme } from "@radix-ui/themes";
 
 export const metadata: Metadata = {
   title: "Clerk Next.js Quickstart",
@@ -21,12 +18,8 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body>
-          <Theme accentColor="purple">
-            <SignedIn>
-              <UserButton />
-            </SignedIn>
+           
             {children}
-          </Theme>
         </body>
       </html>
     </ClerkProvider>

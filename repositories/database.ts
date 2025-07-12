@@ -20,6 +20,18 @@ export class RestaurantRepository {
       .single()
   }
 
+  async getRestaurants() {
+    const supabase = await this.getSupabase()
+    const { data, error } = await supabase
+      .from('restaurants')
+      .select('*')
+
+    if (error) {
+      throw new Error(`Error getting restaurants: ${error.message}`)
+    }
+    return data as Restaurant[]
+  }
+
   async getRestaurant(id: number) {
     const supabase = await this.getSupabase()
     const { data, error } = await supabase
