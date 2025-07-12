@@ -207,7 +207,7 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
                                                     }}
                                                 >
                                                     <div className="flex flex-row justify-between items-center text-[13px]">
-                                                        <div>{new Date(reservation.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                        <div>{moment(reservation.start_time).utc().format('HH:mm')}</div>
                                                         <div className="flex flex-row items-center gap-1 text-gray-500 ">
                                                             <div>{reservation.guests}</div>
                                                             <Image src="/images/icons/people.svg" alt="paxs" width={15} height={15} />
