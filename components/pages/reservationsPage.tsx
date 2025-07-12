@@ -11,7 +11,7 @@ import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { getDaySchedules, getReservationsForDay } from "@/actions/restaurantActions"
 import { createClient } from '@supabase/supabase-js';
-import { getOpenAndCloseTimes, isInSchedule } from "@/services/schedulesService"
+import { getOpenAndCloseTimes } from "@/services/schedulesService"
 import Image from "next/image"
 
 
@@ -177,7 +177,7 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
                         {timeSlots.map((time, key) => (
                             ((time.endsWith(":00") && key !== timeSlots.length - 1) && (
                                 <div
-                                    key={time}
+                                    key={key}
                                     style={{ width: `${gridWidth * 4}px` }}
                                     className={`h-full  border-r  border-gray-200 `}
                                 >
@@ -190,8 +190,8 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
                         <div className="absolute inset-0 flex top-[33px] flex-col">
 
                             {/* Reservations */}
-                            {tables.map((table) => (
-                                <div className="relative flex flex-row border-b border-gray-200 h-[101px]" style={{ width: `${(timeSlots.filter(time => time.endsWith(":00")).length - 1) * gridWidth * 4}px` }}>
+                            {tables.map((table, key) => (
+                                <div key={key} className="relative flex flex-row border-b border-gray-200 h-[101px]" style={{ width: `${(timeSlots.filter(time => time.endsWith(":00")).length - 1) * gridWidth * 4}px` }}>
                                     {reservations
                                         .filter((reservation) => reservation.table_id === table.id)
                                         .map((reservation) => {
@@ -215,7 +215,7 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
                                                     </div>
                                                     <div className="flex flex-row gap-2 items-center text-[15px]">
                                                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                        <div>{reservation.client_id}</div>
+                                                        <div>{reservation.clients?.name}</div>
                                                     </div>
 
                                                 </div>

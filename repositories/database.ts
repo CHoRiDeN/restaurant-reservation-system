@@ -88,11 +88,12 @@ export class RestaurantRepository {
     endDate.setDate(endDate.getDate() + 1);
     const { data, error } = await supabase
       .from('reservations')
-      .select('*')
+      .select('*,clients:client_id (*)')
       .eq('restaurant_id', restaurantId)
       .gte('start_time', date)
       .lte('end_time', endDate.toISOString());
 
+    console.log('data', data);
     if (error) {
       throw new Error(`Error getting reservations for day: ${error.message}`)
     }
