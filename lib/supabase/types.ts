@@ -18,6 +18,7 @@ export interface Table {
   capacity: number;
   zone_id?: number;
   restaurant_id: number;
+  zone?: Zone;
 }
 
 export interface Schedule {
@@ -47,7 +48,7 @@ export interface Reservation {
   client_id: number; // Now required for all new reservations
   confirmed: boolean;
   notes?: string;
-  clients?: Client;
+  client?: Client;
 }
 
 export interface ScheduleException {

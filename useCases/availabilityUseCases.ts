@@ -16,13 +16,11 @@ export async function checkAvailabilityUseCase(
     // STEP 2: Get day of week (0=Sunday, 6=Saturday)
     const requestDate = new Date(datetime)
     const dayOfWeek = requestDate.getDay()
-    console.log('dayOfWeek', dayOfWeek)
 
 
     const requestEnd = new Date(requestDate.getTime() + restaurant.reservation_duration * 60000)
 
 
-    console.log('looking for available table', requestDate, requestEnd, guests)
     const availableTables = await db.findAvailableTables(
       restaurantId,
       requestDate.toISOString(),

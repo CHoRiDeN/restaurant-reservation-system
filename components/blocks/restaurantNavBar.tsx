@@ -18,7 +18,7 @@ export default function RestaurantNavBar({ restaurant }: { restaurant: Restauran
                 </Link>
                 <Link href={`/restaurants/${restaurant.id}/tables`} className="flex flex-row gap-2 items-center opacity-50 hover:opacity-100">
                     <Image src="/images/icons/calendar.svg" alt="tables" width={18} height={18} className="text-black" />
-                    Mesas
+                    Usuarios
                 </Link>
                 <Link href={`/restaurants/${restaurant.id}/settings`} className="flex flex-row gap-2 items-center opacity-50 hover:opacity-100">
                     <Image src="/images/icons/calendar.svg" alt="settings" width={18} height={18} className="text-black" />

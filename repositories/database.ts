@@ -53,7 +53,7 @@ export class RestaurantRepository {
     const supabase = await this.getSupabase()
     let query = supabase
       .from('tables')
-      .select('*')
+      .select('*, zone:zone_id (*)')
       .eq('restaurant_id', restaurantId)
 
     if (minCapacity) {
@@ -83,17 +83,15 @@ export class RestaurantRepository {
 
   async getReservationsForDay(restaurantId: number, date: string) {
     const supabase = await this.getSupabase()
-    console.log('getReservationsForDay', restaurantId, date);
     const endDate = new Date(date);
     endDate.setDate(endDate.getDate() + 1);
     const { data, error } = await supabase
       .from('reservations')
-      .select('*,clients:client_id (*)')
+      .select('*,client:client_id (*)')
       .eq('restaurant_id', restaurantId)
       .gte('start_time', date)
       .lte('end_time', endDate.toISOString());
 
-    console.log('data', data);
     if (error) {
       throw new Error(`Error getting reservations for day: ${error.message}`)
     }
@@ -406,8 +404,8 @@ export class RestaurantRepository {
       .insert(finalReservationData)
       .select(`
         *,
-        tables:table_id (*),
-        clients:client_id (*)
+        table:table_id (*),
+        client:client_id (*)
       `)
       .single()
 
@@ -424,8 +422,8 @@ export class RestaurantRepository {
 
     return {
       reservation: result.data,
-      table: result.data.tables,
-      client: result.data.clients
+      table: result.data.table,
+      client: result.data.client
     }
   }
 

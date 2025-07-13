@@ -12,7 +12,8 @@ import { useSearchParams } from "next/navigation"
 import { getDaySchedules, getReservationsForDay } from "@/actions/restaurantActions"
 import { createClient } from '@supabase/supabase-js';
 import { getOpenAndCloseTimes } from "@/services/schedulesService"
-import Image from "next/image"
+import ReservationSheet from "../blocks/reservationSheet"
+import { Badge } from "../ui/badge"
 
 
 const generateTimeSlots = (daySchedules: Schedule[]) => {
@@ -124,7 +125,7 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
-                        variant="outline"
+                        className="bg-white text-gray-700 hover:text-white"
                         size="icon"
                         onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}
                     >
@@ -133,7 +134,7 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
 
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-[200px] justify-start text-left font-normal bg-transparent">
+                            <Button className="w-[150px] justify-start text-left font-normal bg-white text-gray-700 hover:text-white">
                                 <Calendar className="mr-2 h-4 w-4" />
                                 {format(selectedDate, "MMM d, yyyy")}
                             </Button>
@@ -148,7 +149,7 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
                     </Popover>
 
                     <Button
-                        variant="outline"
+                        className="bg-white text-gray-700 hover:text-white"
                         size="icon"
                         onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
                     >
@@ -166,7 +167,11 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
                 <div className="tables-column flex flex-col divide-y divide-gray-200">
                     {tables.map((table) => (
                         <div key={table.id} className="table-row">
-                            <div className="text-[15px]">Mesa #{table.id}</div>
+                            <div className="flex flex-row gap-2 items-center justify-between">
+                                <div className="text-[15px]">Mesa #{table.id}</div>
+                                <Badge variant="outline" className="text-[12px] opacity-30">{table.zone?.name}</Badge>
+                            </div>
+
                             <div className="text-[13px] text-gray-500">{table.capacity} Comensales</div>
                         </div>
                     ))}
@@ -199,24 +204,14 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
                                             return (
                                                 <div
                                                     key={reservation.id}
-                                                    className={`absolute top-1 bottom-1 reservation-card flex flex-col justify-between`}
+                                                    className={`absolute top-1 bottom-1`}
                                                     style={{
                                                         left: `${left}px`,
                                                         width: `${width}px`,
                                                         minWidth: `${gridWidth}px`,
                                                     }}
                                                 >
-                                                    <div className="flex flex-row justify-between items-center text-[13px]">
-                                                        <div>{moment(reservation.start_time).utc().format('HH:mm')}</div>
-                                                        <div className="flex flex-row items-center gap-1 text-gray-500 ">
-                                                            <div>{reservation.guests}</div>
-                                                            <Image src="/images/icons/people.svg" alt="paxs" width={15} height={15} />
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex flex-row gap-2 items-center text-[15px]">
-                                                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                        <div>{reservation.clients?.name}</div>
-                                                    </div>
+                                                    <ReservationSheet reservation={reservation} />
 
                                                 </div>
                                             )
