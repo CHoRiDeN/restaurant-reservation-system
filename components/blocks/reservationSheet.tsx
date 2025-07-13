@@ -52,8 +52,8 @@ export default function ReservationSheet({ reservation }: { reservation: Reserva
                     <ContentRow title="Reservas anteriores" >
                         No hay reservas anteriores
                     </ContentRow>
-                    <ContentRow title="Registro de llamadas" >
-                        {reservation.client?.name}
+                    <ContentRow title="Detalles de la llamada" >
+                        <audio controls={true} className="h-11 w-full" src="https://dxc03zgurdly9.cloudfront.net/e2cb4dcc16e56715cb4adb4b892555c5322152a3d9e00a5d7cdd806229a1c924/recording.wav">Your browser does not support the audio element.</audio>
                     </ContentRow>
                 </div>
 

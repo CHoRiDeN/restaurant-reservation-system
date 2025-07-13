@@ -169,7 +169,7 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
                         <div key={table.id} className="table-row">
                             <div className="flex flex-row gap-2 items-center justify-between">
                                 <div className="text-[15px]">Mesa #{table.id}</div>
-                                <Badge variant="outline" className="text-[12px] opacity-30">{table.zone?.name}</Badge>
+                                <Badge variant="outline" className="text-[12px] opacity-25">{table.zone?.name}</Badge>
                             </div>
 
                             <div className="text-[13px] text-gray-500">{table.capacity} Comensales</div>
