@@ -1,6 +1,6 @@
 import { authenticateApiKey } from '../../../../../lib/auth/api-auth'
 import { createReservation, createReservationWithClientData, validateReservationRequest } from '../../../../../services/reservations'
-import { createSuccessResponse, UnauthorizedResponse, ForbiddenResponse, BadRequestResponse, InternalServerErrorResponse } from '../../../../../lib/utils/responses'
+import { createSuccessResponse, UnauthorizedResponse, ForbiddenResponse, BadRequestResponse } from '../../../../../lib/utils/responses'
 
 export async function POST(
   request: Request,
@@ -45,26 +45,22 @@ export async function POST(
       return BadRequestResponse(validation.errors.join(', '))
     }
     
-    // PATTERN: Business logic - create reservation with mandatory client support
     let result
     
     if (client) {
-      // Create reservation with client data (will find or create client)
       const { name, email, phone } = client
       if (!name || !phone) {
         return BadRequestResponse('Client name and phone are required')
       }
       result = await createReservationWithClientData(restaurant.id, start_time, guests, { name, email, phone }, notes)
     } else if (client_id) {
-      // Create reservation with existing client ID
       result = await createReservation(restaurant.id, start_time, guests, client_id, notes)
     } else {
-      // This should never happen due to validation above
-      return BadRequestResponse('Client data is required')
+      throw new Error('Client data is required')
     }
     
     if (!result) {
-      return BadRequestResponse('Unable to create reservation - no availability')
+      throw new Error('Unable to create reservation - no availability')
     }
     
     const responseData: Record<string, unknown> = {
@@ -72,7 +68,6 @@ export async function POST(
       table: result.table
     }
     
-    // Include client information if available
     if (result.client) {
       responseData.client = result.client
     }
@@ -82,25 +77,7 @@ export async function POST(
   } catch (error) {
     console.error('Reservation creation error:', error)
     
-    // Handle specific error messages
-    if (error instanceof Error) {
-      if (error.message.includes('No availability') || error.message.includes('No suitable table')) {
-        return BadRequestResponse(error.message)
-      }
-      if (error.message.includes('Table already reserved')) {
-        return BadRequestResponse(error.message)
-      }
-      if (error.message.includes('Client not found')) {
-        return BadRequestResponse(error.message)
-      }
-      if (error.message.includes('Client name and email are required')) {
-        return BadRequestResponse(error.message)
-      }
-      if (error.message.includes('already exists')) {
-        return BadRequestResponse(error.message)
-      }
-    }
     
-    return InternalServerErrorResponse('Unable to create reservation')
+    return BadRequestResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }

@@ -1,5 +1,8 @@
 import { RestaurantRepository } from '@/repositories/database'
 import { Reservation, Table, Client } from '@/lib/supabase/types'
+import { getOpenAndCloseTimes } from './schedulesService'
+import moment from 'moment'
+import { validateRequestBeforeClosing } from './availability'
 
 export async function createReservation(
   restaurantId: number,
@@ -27,10 +30,14 @@ export async function createReservation(
     const restaurant = await db.getRestaurant(restaurantId)
     const reservationDuration = restaurant?.reservation_duration
     const requestStart = new Date(startTime)
-    const requestEnd =  new Date(requestStart.getTime() + reservationDuration * 60000)
+    const requestEnd = new Date(requestStart.getTime() + reservationDuration * 60000)
+
+
+    //check if the request end time is after the closing time
+    await validateRequestBeforeClosing(restaurant, moment(startTime).utc())
 
     // STEP 3: Create reservation with automatic table assignment and enhanced conflict prevention
-    try {
+    
       const result = await db.createReservationWithLock({
         start_time: startTime,
         end_time: requestEnd.toISOString(),
@@ -41,29 +48,12 @@ export async function createReservation(
         notes: notes
       })
 
-      return { 
-        reservation: result.reservation, 
+      return {
+        reservation: result.reservation,
         table: result.table,
         client: result.client || client
       }
-    } catch (error: any) {
-      // Handle specific business logic errors
-      if (error.message.includes('No available tables')) {
-        return null // No availability
-      }
-      if (error.message.includes('no longer available')) {
-        throw new Error('Table already reserved for this time slot')
-      }
-      
-      // Handle constraint violations gracefully
-      if (error.code === '23505') { // Unique constraint violation
-        throw new Error('Table already reserved for this time slot')
-      }
-      if (error.code === '23503') { // Foreign key constraint violation
-        throw new Error('Invalid client reference')
-      }
-      throw new Error(`Failed to create reservation: ${error.message || 'Unknown error'}`)
-    }
+   
   } catch (error) {
     console.error('Reservation creation error:', error)
     throw error
@@ -87,18 +77,18 @@ export async function validateReservationRequest(
 
   // Validate time format and future time
   try {
-    
+
     const reservationStart = new Date(startTime)
     const now = new Date()
-    
+
     if (isNaN(reservationStart.getTime())) {
       errors.push('Invalid start time format')
     } else if (reservationStart < now) {
       errors.push('Reservation start time must be in the future')
     }
 
-    
-   
+
+
   } catch (error) {
     errors.push('Invalid time format')
   }
@@ -130,7 +120,7 @@ export async function createReservationWithClientData(
   try {
     // Try to find existing client by email first
     const { data: existingClient } = await db.getClientByPhone(clientData.phone)
-    
+
     let clientId: number
     if (existingClient) {
       clientId = existingClient.id

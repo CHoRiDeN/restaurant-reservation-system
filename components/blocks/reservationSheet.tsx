@@ -1,12 +1,16 @@
 'use client'
 
 import { Reservation } from "@/lib/supabase/types"
-import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet"
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTrigger } from "../ui/sheet"
 import moment from "moment"
 import Image from "next/image"
 import { Button } from "../ui/button"
 import ContentRow from "./contentRow"
 import CalendarWidget from "../ui/calendarWidget"
+import CardWithHeader from "../ui/cardWithHeader"
+import { getTableImage } from "@/lib/utils"
+import { Badge } from "../ui/badge"
+import { DialogTitle } from "@radix-ui/react-dialog"
 
 export default function ReservationSheet({ reservation }: { reservation: Reservation }) {
     return (
@@ -29,20 +33,49 @@ export default function ReservationSheet({ reservation }: { reservation: Reserva
                     <Button size="sm" variant="secondarydestructive">Cancelar reserva</Button>
                 </SheetHeader>
                 <div className="flex flex-col gap-10 px-4 py-0">
-                    <div>
-                        <div className="text-base text-gray-400">#{reservation.id}</div>
-                        <SheetTitle>Reserva para {reservation.guests}</SheetTitle>
+                    <CardWithHeader headerTitle={`Reserva #${reservation.id}`}>
+                        <DialogTitle className="text-2xl font-medium">{reservation.client?.name}</DialogTitle>
+                        <div className="grid grid-cols-2 mb-2">
+                            <CalendarWidget date={new Date(reservation.start_time)} />
+                            <div className="flex flex-row items-center gap-2">
+                                <Image className="h-[40px] w-auto" src={getTableImage(reservation.table?.capacity || 2, reservation.guests)} alt="table" width={100} height={100} />
+                                <div className="flex flex-col gap-0">
+                                    <div className="text-sm text-gray-900">Mesa #1234</div>
+                                    <div className="text-sm text-gray-500">Salon</div>
+                                </div>
+                            </div>
+                        </div>
 
-                    </div>
-                    <div>
-                        <CalendarWidget date={new Date(reservation.start_time)} />
-                    </div>
+                    </CardWithHeader>
 
-                    <ContentRow title="A nombre de" >
-                        <div className="flex flex-row gap-2 items-center w-full justify-between">
+
+                    <ContentRow title="Detalles de la reserva" >
+                        <div className="flex flex-row items-center w-full justify-between">
+                            <div className="text-gray-500">Identificador</div>
+                            <div>#{reservation.id}</div>
+                        </div>
+                        <div className="flex flex-row items-center w-full justify-between">
+                            <div className="text-gray-500">Creada el</div>
+                            <div>12 Jul 2025 14:00</div>
+                        </div>
+                        <div className="flex flex-row items-center w-full justify-between">
+                            <div className="text-gray-500">Comensales</div>
+                            <div>{reservation.guests}</div>
+                        </div>
+                        <div className="flex flex-row items-center w-full justify-between">
+                            <div className="text-gray-500">Estado</div>
+                            <div>{reservation.confirmed ? <Badge variant="successOutline">Confirmada</Badge> : "Pendiente"}</div>
+                        </div>
+                    </ContentRow>
+
+                    <ContentRow title="Detalles del cliente" >
+                        <div className="flex flex-row items-center w-full justify-between">
+                            <div className="text-gray-500">Nombre</div>
                             <div> {reservation.client?.name}</div>
+                        </div>
+                        <div className="flex flex-row items-center w-full justify-between">
+                            <div className="text-gray-500">Teléfono</div>
                             <div> {reservation.client?.phone}</div>
-
                         </div>
                     </ContentRow>
 

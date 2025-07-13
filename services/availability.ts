@@ -1,5 +1,7 @@
 import { RestaurantRepository } from '../repositories/database'
-import { Reservation, Schedule, Table } from '../lib/supabase/types'
+import { Reservation, Restaurant, Schedule, Table } from '../lib/supabase/types'
+import moment, { Moment } from 'moment'
+import { getOpenAndCloseTimes } from './schedulesService'
 
 
 
@@ -52,6 +54,23 @@ export async function getAvailableTablesForSlot(
     console.error('Error getting available tables for slot:', error)
     return []
   }
+}
+
+
+export async function validateRequestBeforeClosing(restaurant: Restaurant, requestStart: Moment) {
+  const db = new RestaurantRepository()
+  const daySchedules = await db.getSchedules(restaurant.id, requestStart.day())
+  const reservationDuration = restaurant?.reservation_duration;
+  const requestEnd = requestStart.add(reservationDuration, 'minutes')
+  const { openTime, closeTime } = getOpenAndCloseTimes(daySchedules)
+  console.log('closeTime', closeTime)
+  const closingTime = new Date(`${requestStart.format('YYYY-MM-DD')}T${closeTime}Z`)
+  console.log('requestEnd', requestEnd)
+  console.log('closingTime', closingTime)
+  if (requestEnd.isAfter(closingTime)) {
+    throw new Error('Reservation end time must be before closing time')
+  }
+
 }
 
 // Enhanced availability check for a specific time slot with table counts

@@ -87,7 +87,7 @@ export class RestaurantRepository {
     endDate.setDate(endDate.getDate() + 1);
     const { data, error } = await supabase
       .from('reservations')
-      .select('*,client:client_id (*)')
+      .select('*,client:client_id (*), table:table_id (*)')
       .eq('restaurant_id', restaurantId)
       .gte('start_time', date)
       .lte('end_time', endDate.toISOString());

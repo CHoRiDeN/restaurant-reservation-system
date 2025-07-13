@@ -87,10 +87,14 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
     }, [restaurant.id, selectedDate]);
 
 
+    if(daySchedules.length === 0) {
+        return <div>Loading...</div>
+    }
 
     const timeSlots = generateTimeSlots(daySchedules);
 
     const getReservationPosition = (reservation: Reservation, startTime: string) => {
+
 
 
         const openingTime = timeSlots[0];

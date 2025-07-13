@@ -17,7 +17,7 @@ export default function CalendarWidget({ date }: { date: Date }) {
                 </div>
             </div>
             <div className="flex flex-col gap-0">
-                <div className="text-sm text-gray-900">{momentDate.format('dddd, DD MMMM')}</div>
+                <div className="text-sm text-gray-900">{momentDate.format('dddd DD')}</div>
                 <div className="text-sm text-gray-500">{momentDate.format('HH:mm')} - {momentDate.add(2, 'hours').format('HH:mm')}</div>
             </div>
         </div>

@@ -49,6 +49,7 @@ export interface Reservation {
   confirmed: boolean;
   notes?: string;
   client?: Client;
+  table?: Table;
 }
 
 export interface ScheduleException {
