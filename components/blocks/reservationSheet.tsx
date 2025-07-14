@@ -40,7 +40,7 @@ export default function ReservationSheet({ reservation }: { reservation: Reserva
                             <div className="flex flex-row items-center gap-2">
                                 <Image className="h-[40px] w-auto" src={getTableImage(reservation.table?.capacity || 2, reservation.guests)} alt="table" width={100} height={100} />
                                 <div className="flex flex-col gap-0">
-                                    <div className="text-sm text-gray-900">Mesa #1234</div>
+                                    <div className="text-sm text-gray-900">Mesa #{reservation.table?.id}</div>
                                     <div className="text-sm text-gray-500">Salon</div>
                                 </div>
                             </div>

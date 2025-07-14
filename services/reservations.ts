@@ -108,25 +108,22 @@ export async function createReservationWithClientData(
   restaurantId: number,
   startTime: string,
   guests: number,
-  clientData: {
-    name: string
-    email?: string
-    phone: string
-  },
+  clientName: string,
+  clientPhone: string,
   notes?: string
 ): Promise<{ reservation: Reservation, table: Table, client?: Client } | null> {
   const db = new RestaurantRepository()
 
   try {
     // Try to find existing client by email first
-    const { data: existingClient } = await db.getClientByPhone(clientData.phone)
+    const { data: existingClient } = await db.getClientByPhone(clientPhone)
 
     let clientId: number
     if (existingClient) {
       clientId = existingClient.id
     } else {
       // Create new client
-      const { data: newClient, error: clientError } = await db.createClient(restaurantId, clientData.name, clientData.phone, clientData.email)
+      const { data: newClient, error: clientError } = await db.createClient(restaurantId, clientName, clientPhone, "")
       if (clientError || !newClient) {
         throw new Error(`Failed to create client: ${clientError?.message || 'Unknown error'}`)
       }
