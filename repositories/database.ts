@@ -1,6 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '../lib/supabase/client'
 import { Restaurant, Table, Schedule, ScheduleException, Reservation, Client } from '../lib/supabase/types'
+import moment from 'moment'
 
 export class RestaurantRepository {
   private async getSupabase() {
@@ -83,13 +84,13 @@ export class RestaurantRepository {
 
   async getReservationsForDay(restaurantId: number, date: string) {
     const supabase = await this.getSupabase()
-    const endDate = new Date(date);
-    endDate.setDate(endDate.getDate() + 1);
+    const startDate = moment(date).utc().startOf('day').toDate()
+    const endDate = moment(date).utc().endOf('day').toDate()
     const { data, error } = await supabase
       .from('reservations')
       .select('*,client:client_id (*), table:table_id (*)')
       .eq('restaurant_id', restaurantId)
-      .gte('start_time', date)
+      .gte('start_time', startDate.toISOString())
       .lte('end_time', endDate.toISOString());
 
     if (error) {

@@ -50,7 +50,7 @@ export default function CSRestaurantReservationsPage({ tables, restaurant }: { t
 
 
     const fetchReservations = async () => {
-        const reservations = await getReservationsForDay(restaurant.id, selectedDate.toISOString())
+        const reservations = await getReservationsForDay(restaurant.id, selectedDate.toISOString());
         setReservations(reservations)
     }
 
