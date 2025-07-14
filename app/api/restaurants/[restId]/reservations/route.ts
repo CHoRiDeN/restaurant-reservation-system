@@ -1,5 +1,5 @@
 import { authenticateApiKey } from '../../../../../lib/auth/api-auth'
-import { createReservation, createReservationWithClientData, validateReservationRequest } from '../../../../../services/reservations'
+import { createReservationWithClientData, validateReservationRequest } from '../../../../../services/reservations'
 import { createSuccessResponse, UnauthorizedResponse, ForbiddenResponse, BadRequestResponse } from '../../../../../lib/utils/responses'
 
 export async function POST(
@@ -42,9 +42,8 @@ export async function POST(
       return BadRequestResponse(validation.errors.join(', '))
     }
 
-    let result
 
-    result = await createReservationWithClientData(restaurant.id, start_time, guests, client_name, client_phone, notes)
+    const result = await createReservationWithClientData(restaurant.id, start_time, guests, client_name, client_phone, notes)
 
     if (!result) {
       throw new Error('Unable to create reservation - no availability')
